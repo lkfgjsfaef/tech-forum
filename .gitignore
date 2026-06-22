@@ -60,3 +60,5 @@ Agent/uploads/
 *.jpg
 *.png
 !*.svg
+FixCode.java
+FixCode2.java
