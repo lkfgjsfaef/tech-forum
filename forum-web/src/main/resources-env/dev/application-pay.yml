@@ -1,0 +1,11 @@
+wx:
+  pay:
+    enable: false
+    appId: ${WX_PAY_APP_ID:}
+    merchantId: ${WX_PAY_MERCHANT_ID:}
+    privateKey: ${WX_PAY_PRIVATE_KEY_PATH:}
+    merchantSerialNumber: ${WX_PAY_MERCHANT_SERIAL:}
+    apiV3Key: ${WX_PAY_API_V3_KEY:}
+    payNotifyUrl: ${WX_PAY_NOTIFY_URL:}
+    refundNotifyUrl: ${WX_REFUND_NOTIFY_URL:}
+

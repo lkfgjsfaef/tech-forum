@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.user.mapper.UserMapper">
+
+    <select id="findByUsername" resultType="com.example.forum.service.user.entity.User">
+        SELECT * FROM user WHERE user_name = #{username} AND deleted = 0 LIMIT 1
+    </select>
+
+    <select id="findByEmail" resultType="com.example.forum.service.user.entity.User">
+        SELECT u.* FROM user u INNER JOIN user_info ui ON u.id = ui.user_id
+        WHERE ui.email = #{email} AND u.deleted = 0 AND ui.deleted = 0 LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.example.forum.service.user.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user (third_account_id, user_name, password, login_type, deleted, create_time, update_time)
+        VALUES ('', #{username}, #{password}, 1, 0, NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.example.forum.service.user.entity.User">
+        UPDATE user SET user_name = #{username}, session = #{session},
+        <if test="password != null">password = #{password},</if>
+        update_time = #{updateTime} WHERE id = #{id}
+    </update>
+
+    <select id="findById" resultType="com.example.forum.service.user.entity.User">
+        SELECT * FROM user WHERE id = #{id} AND deleted = 0 LIMIT 1
+    </select>
+
+    <select id="findBySession" resultType="com.example.forum.service.user.entity.User">
+        SELECT * FROM user WHERE session = #{session} AND deleted = 0 LIMIT 1
+    </select>
+
+    <select id="searchUser" resultType="com.example.forum.service.user.entity.User">
+        SELECT * FROM user WHERE user_name LIKE CONCAT('%', #{key}, '%') AND deleted = 0 LIMIT 20
+    </select>
+
+    <!-- 统计用户总数（用于站点统计） -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM user WHERE deleted = 0
+    </select>
+
+</mapper>

@@ -1,0 +1,62 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Environment & Secrets
+.env
+.env.local
+*.env.local
+src/main/resources-env/prod/
+
+# Upload & Temp
+/tmp/
+*.tmp
+
+# Certificates
+cert/
+*.pem
+*.p12
+*.jks
+
+# Compiled Java
+*.class
+*.jar
+*.war
+
+# Agent
+Agent/target/
+
+# Config with secrets
+application-ai.yml
+!src/main/resources/application-ai.yml
+Agent/uploads/
+*.jpg
+*.png
+!*.svg

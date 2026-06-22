@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.chat.repository.dao.ChatMessageDao">
+
+    <resultMap id="BaseResultMap" type="com.example.forum.service.chat.entity.ChatMessageDO">
+        <id column="id" property="id"/>
+        <result column="session_id" property="sessionId"/>
+        <result column="from_user_id" property="fromUserId"/>
+        <result column="to_user_id" property="toUserId"/>
+        <result column="content" property="content"/>
+        <result column="message_type" property="messageType"/>
+        <result column="is_read" property="isRead"/>
+        <result column="deleted" property="deleted"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_message (session_id, from_user_id, to_user_id, content, message_type, is_read, deleted, create_time)
+        VALUES (#{sessionId}, #{fromUserId}, #{toUserId}, #{content}, #{messageType}, 0, 0, NOW())
+    </insert>
+
+    <update id="markAsRead">
+        UPDATE chat_message SET is_read = 1 WHERE session_id = #{sessionId} AND to_user_id = #{toUserId} AND is_read = 0
+    </update>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*) FROM chat_message WHERE to_user_id = #{toUserId} AND is_read = 0 AND deleted = 0
+    </select>
+
+    <select id="listBySession" resultMap="BaseResultMap">
+        SELECT * FROM chat_message WHERE session_id = #{sessionId} AND deleted = 0
+        ORDER BY create_time ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+</mapper>

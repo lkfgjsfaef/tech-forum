@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- 用户文章列表片段，供Ajax加载使用 -->
+    <div th:each="article : ${homeSelectList.list}" class="article-item" style="padding: 15px 20px; border-bottom: 1px solid #f0f0f0;">
+        <h3 style="margin-bottom: 5px;">
+            <a th:href="'/article/detail/' + ${article.articleId}" th:text="${article.title}" style="color: #333; text-decoration: none;">文章标题</a>
+        </h3>
+        <div style="color: #999; font-size: 13px;">
+            <span th:text="${#temporals.format(article.createTime, 'yyyy-MM-dd')}">2024-01-01</span>
+            <span th:text="${article.readCount} + ' 阅读'">0 阅读</span>
+        </div>
+    </div>
+</body>
+</html>

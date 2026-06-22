@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PaiChat - Advanced AI Assistant</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['"DM Sans"', 'sans-serif'],
+                        mono: ['"JetBrains Mono"', 'monospace'],
+                    },
+                    colors: {
+                        surface: '#0f0f11',
+                        panel: '#18181b',
+                        border: '#27272a',
+                        brand: '#f97316',
+                        'brand-hover': '#ea580c',
+                        text: '#f4f4f5',
+                        muted: '#a1a1aa'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #0f0f11; color: #f4f4f5; font-family: 'DM Sans', sans-serif; overflow: hidden; }
+        .glass-panel { background: rgba(24, 24, 27, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(39, 39, 42, 0.8); }
+        .markdown-body pre { background: #000; padding: 1rem; border-radius: 0.5rem; overflow-x: auto; margin: 1rem 0; border: 1px solid #27272a; font-family: 'JetBrains Mono', monospace; font-size: 0.875rem; }
+        .markdown-body code { font-family: 'JetBrains Mono', monospace; background: rgba(255,255,255,0.1); padding: 0.125rem 0.25rem; border-radius: 0.25rem; font-size: 0.875em; }
+        .markdown-body pre code { background: transparent; padding: 0; }
+        .markdown-body p { margin-bottom: 0.75rem; line-height: 1.6; }
+        .markdown-body ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+        .markdown-body ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+        .message-entrance { animation: slideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .typing-dot { animation: typing 1.4s infinite ease-in-out both; }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes typing { 0%, 80%, 100% { transform: scale(0); opacity: 0.3; } 40% { transform: scale(1); opacity: 1; } }
+        
+        [v-cloak] { display: none; }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col overflow-hidden selection:bg-brand selection:text-white">
+    <!-- Header -->
+    <header class="h-14 border-b border-border flex items-center justify-between px-6 shrink-0 z-10 glass-panel">
+        <div class="flex items-center gap-3">
+            <a href="/" class="text-brand font-bold text-xl tracking-tight hover:opacity-80 transition-opacity">Pai<span class="text-white">Chat</span></a>
+            <div class="h-4 w-[1px] bg-border mx-2"></div>
+            <span class="text-xs font-mono text-muted tracking-wider uppercase">Agent Workspace</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="/" class="text-sm text-muted hover:text-white transition-colors">社区首页</a>
+        </div>
+    </header>
+
+    <div id="app" v-cloak class="flex-1 flex overflow-hidden relative">
+        <!-- Sidebar -->
+        <aside class="w-64 border-r border-border bg-surface flex flex-col shrink-0 transition-all duration-300 z-20">
+            <div class="p-4 border-b border-border">
+                <button @click="createNewSession" class="w-full py-2 px-4 bg-white text-black hover:bg-gray-200 font-medium rounded-md flex items-center justify-center gap-2 transition-colors text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    New Chat
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-y-auto p-3 space-y-1">
+                <div v-if="sessions.length === 0" class="text-xs text-muted text-center mt-10 px-4">
+                    No conversation history.
+                </div>
+                <button 
+                    v-for="s in sessions" :key="s.id"
+                    @click="switchSession(s.id)"
+                    class="w-full text-left px-3 py-2.5 rounded-md text-sm truncate transition-colors group relative"
+                    :class="currentSessionId === s.id ? 'bg-panel text-white border border-border' : 'text-muted hover:bg-panel hover:text-white border border-transparent'"
+                >
+                    {{ s.title || 'Untitled Session' }}
+                    
+                    <span @click.stop="deleteSession(s.id)" class="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 p-1 hover:text-red-400 transition-colors">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </span>
+                </button>
+            </div>
+
+            <div class="p-4 border-t border-border">
+                <div class="text-xs text-muted mb-2 font-mono uppercase">Model</div>
+                <select v-model="currentModel" class="w-full bg-panel border border-border text-sm text-white rounded px-2 py-1.5 outline-none focus:border-brand">
+                    <option value="glm-4.7">GLM-4.7</option>
+                    <option value="glm-4.6v">GLM-4.6V</option>
+                    <option value="deepseek">DeepSeek</option>
+                    <option value="openai">OpenAI</option>
+                </select>
+            </div>
+        </aside>
+
+        <!-- Main Chat Area -->
+        <main class="flex-1 flex flex-col relative bg-surface">
+            <!-- Empty State -->
+            <div v-if="messages.length === 0 && !isStreaming" class="absolute inset-0 flex flex-col items-center justify-center p-8 z-0">
+                <div class="w-24 h-24 rounded-2xl bg-gradient-to-br from-brand/20 to-purple-500/20 flex items-center justify-center mb-8 shadow-2xl shadow-brand/5 border border-white/5">
+                    <svg class="w-12 h-12 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                </div>
+                <h2 class="text-2xl font-medium text-white mb-2 tracking-tight">How can I help you today?</h2>
+                <p class="text-muted text-sm max-w-md text-center mb-10">PaiChat uses advanced Agent architecture with tool calling, RAG, and multi-model routing to provide expert answers.</p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full">
+                    <div @click="quickSend('Explain the architecture of a Spring Boot application')" class="glass-panel p-4 rounded-xl cursor-pointer hover:border-brand/50 hover:bg-white/5 transition-all group">
+                        <div class="text-sm font-medium text-white mb-1">Explain Architecture</div>
+                        <div class="text-xs text-muted group-hover:text-gray-300 transition-colors">Break down a Spring Boot application</div>
+                    </div>
+                    <div @click="quickSend('Help me refactor this Java code for better performance')" class="glass-panel p-4 rounded-xl cursor-pointer hover:border-brand/50 hover:bg-white/5 transition-all group">
+                        <div class="text-sm font-medium text-white mb-1">Refactor Code</div>
+                        <div class="text-xs text-muted group-hover:text-gray-300 transition-colors">Optimize Java performance</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages List -->
+            <div class="flex-1 overflow-y-auto px-4 py-6 z-10" id="messages-container">
+                <div class="max-w-3xl mx-auto space-y-8">
+                    <div v-for="msg in messages" :key="msg.id" class="message-entrance flex gap-4" :class="msg.role === 'user' ? 'flex-row-reverse' : ''">
+                        
+                        <div class="shrink-0 w-8 h-8 rounded-md flex items-center justify-center mt-1" :class="msg.role === 'user' ? 'bg-white text-black' : 'bg-brand text-white'">
+                            <svg v-if="msg.role === 'user'" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                            <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        
+                        <div class="flex-1 min-w-0" :class="msg.role === 'user' ? 'text-right' : ''">
+                            <div class="inline-block text-sm" :class="msg.role === 'user' ? 'bg-panel border border-border px-4 py-2.5 rounded-2xl rounded-tr-sm text-left' : 'w-full'">
+                                <div v-if="msg.role === 'user'" class="text-white whitespace-pre-wrap">{{ msg.content }}</div>
+                                <div v-else class="markdown-body text-gray-300" v-html="renderMarkdown(msg.content)"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Streaming Indicator -->
+                    <div v-if="isStreaming" class="message-entrance flex gap-4">
+                        <div class="shrink-0 w-8 h-8 rounded-md bg-brand text-white flex items-center justify-center mt-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div v-if="streamingText" class="markdown-body text-gray-300" v-html="renderMarkdown(streamingText) + ' <span class=\'inline-block w-1.5 h-4 bg-brand ml-1 align-middle animate-pulse\'></span>'"></div>
+                            <div v-else class="flex items-center gap-1 h-8">
+                                <div class="w-1.5 h-1.5 bg-brand rounded-full typing-dot"></div>
+                                <div class="w-1.5 h-1.5 bg-brand rounded-full typing-dot"></div>
+                                <div class="w-1.5 h-1.5 bg-brand rounded-full typing-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="shrink-0 p-4 z-20 bg-gradient-to-t from-surface via-surface to-transparent">
+                <div class="max-w-3xl mx-auto relative">
+                    <div class="absolute -top-10 left-0 text-xs text-red-400 bg-red-400/10 px-2 py-1 rounded" v-if="errorMsg">
+                        {{ errorMsg }}
+                    </div>
+                    
+                    <div class="glass-panel rounded-xl overflow-hidden shadow-2xl focus-within:border-brand/50 transition-colors">
+                        <textarea 
+                            v-model="inputText"
+                            @keydown.enter.exact.prevent="sendMessage"
+                            rows="1"
+                            class="w-full bg-transparent text-white p-4 max-h-48 outline-none resize-none text-sm placeholder-muted leading-relaxed"
+                            placeholder="Ask anything... (Enter to send, Shift+Enter for newline)"
+                            @input="adjustTextareaHeight"
+                            ref="inputRef"
+                        ></textarea>
+                        
+                        <div class="flex items-center justify-between px-3 pb-3">
+                            <div class="flex items-center gap-2">
+                                <button class="p-1.5 text-muted hover:text-white rounded-md transition-colors" title="Attach file">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                                </button>
+                            </div>
+                            
+                            <button 
+                                v-if="!isStreaming"
+                                @click="sendMessage" 
+                                :disabled="!inputText.trim()"
+                                class="p-1.5 bg-white text-black rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 transition-colors"
+                            >
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </button>
+                            <button 
+                                v-else
+                                @click="stopStreaming" 
+                                class="p-1.5 bg-red-500/20 text-red-500 rounded-md hover:bg-red-500/30 transition-colors flex items-center gap-1 px-2"
+                            >
+                                <div class="w-2 h-2 bg-red-500 rounded-sm"></div>
+                                <span class="text-xs font-medium">Stop</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="text-center mt-2 text-[10px] text-muted font-mono uppercase tracking-wider">
+                        AI can make mistakes. Verify important info.
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const { createApp, ref, onMounted, nextTick } = Vue
+
+        createApp({
+            setup() {
+                const sessions = ref([])
+                const currentSessionId = ref(null)
+                const messages = ref([])
+                const inputText = ref('')
+                const isStreaming = ref(false)
+                const streamingText = ref('')
+                const currentModel = ref('glm-4.7')
+                const inputRef = ref(null)
+                const errorMsg = ref('')
+                let abortController = null
+
+                const loadSessions = async () => {
+                    try {
+                        const res = await fetch('/agent/session/list')
+                        if (res.ok) {
+                            const json = await res.json()
+                            if (json.code === 200) {
+                                sessions.value = json.data || []
+                                if (sessions.value.length > 0 && !currentSessionId.value) {
+                                    switchSession(sessions.value[0].id)
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Failed to load sessions', e)
+                    }
+                }
+
+                const createNewSession = async () => {
+                    try {
+                        const res = await fetch('/agent/session/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ title: 'New Conversation' })
+                        })
+                        if (res.ok) {
+                            const json = await res.json()
+                            if (json.code === 200) {
+                                sessions.value.unshift(json.data)
+                                currentSessionId.value = json.data.id
+                                messages.value = []
+                                inputText.value = ''
+                                inputRef.value?.focus()
+                            }
+                        }
+                    } catch (e) {
+                        errorMsg.value = 'Failed to create session'
+                        setTimeout(() => errorMsg.value = '', 3000)
+                    }
+                }
+
+                const switchSession = async (id) => {
+                    currentSessionId.value = id
+                    messages.value = []
+                    errorMsg.value = ''
+                    try {
+                        const res = await fetch(`/agent/message/list?sessionId=${id}`)
+                        if (res.ok) {
+                            const json = await res.json()
+                            if (json.code === 200) {
+                                messages.value = json.data || []
+                                scrollToBottom()
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Failed to load messages', e)
+                    }
+                }
+                
+                const deleteSession = async (id) => {
+                    if(!confirm('Delete this conversation?')) return;
+                    try {
+                        const res = await fetch(`/agent/session/${id}`, { method: 'DELETE' })
+                        if(res.ok) {
+                            sessions.value = sessions.value.filter(s => s.id !== id)
+                            if(currentSessionId.value === id) {
+                                currentSessionId.value = null
+                                messages.value = []
+                            }
+                        }
+                    } catch(e) {}
+                }
+
+                const adjustTextareaHeight = () => {
+                    const el = inputRef.value
+                    if (!el) return
+                    el.style.height = 'auto'
+                    el.style.height = Math.min(el.scrollHeight, 192) + 'px'
+                }
+
+                const scrollToBottom = () => {
+                    nextTick(() => {
+                        const container = document.getElementById('messages-container')
+                        if (container) {
+                            container.scrollTop = container.scrollHeight
+                        }
+                    })
+                }
+
+                const renderMarkdown = (text) => {
+                    if (!text) return ''
+                    return marked.parse(text)
+                }
+
+                const quickSend = (text) => {
+                    inputText.value = text
+                    sendMessage()
+                }
+
+                const sendMessage = async () => {
+                    const text = inputText.value.trim()
+                    if (!text || isStreaming.value) return
+                    
+                    errorMsg.value = ''
+
+                    if (!currentSessionId.value) {
+                        await createNewSession()
+                    }
+
+                    messages.value.push({ id: Date.now(), role: 'user', content: text })
+                    inputText.value = ''
+                    adjustTextareaHeight()
+                    scrollToBottom()
+
+                    isStreaming.value = true
+                    streamingText.value = ''
+                    abortController = new AbortController()
+
+                    try {
+                        const params = new URLSearchParams()
+                        params.append('sessionId', currentSessionId.value)
+                        params.append('content', text)
+                        params.append('modelName', currentModel.value)
+
+                        const response = await fetch(`/agent/chat/stream?${params.toString()}`, {
+                            method: 'GET',
+                            signal: abortController.signal
+                        })
+
+                        if (!response.ok) throw new Error('Network response was not ok')
+
+                        const reader = response.body.getReader()
+                        const decoder = new TextDecoder()
+                        let buffer = ''
+
+                        while (true) {
+                            const { done, value } = await reader.read()
+                            if (done) break
+                            
+                            buffer += decoder.decode(value, { stream: true })
+                            const lines = buffer.split('\n')
+                            buffer = lines.pop() || ''
+
+                            for (const line of lines) {
+                                if (line.startsWith('data:')) {
+                                    const data = line.substring(5).trim()
+                                    if (data === '[DONE]') break
+                                    
+                                    try {
+                                        streamingText.value += data
+                                        scrollToBottom()
+                                    } catch (e) {}
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        if (err.name === 'AbortError') {
+                            console.log('Stream aborted')
+                        } else {
+                            errorMsg.value = 'Connection failed. Please try again.'
+                        }
+                    } finally {
+                        if (streamingText.value) {
+                            messages.value.push({ id: Date.now(), role: 'assistant', content: streamingText.value })
+                        }
+                        isStreaming.value = false
+                        streamingText.value = ''
+                        abortController = null
+                        scrollToBottom()
+                    }
+                }
+
+                const stopStreaming = () => {
+                    if (abortController) {
+                        abortController.abort()
+                    }
+                }
+
+                onMounted(() => {
+                    loadSessions()
+                })
+
+                return {
+                    sessions,
+                    currentSessionId,
+                    messages,
+                    inputText,
+                    isStreaming,
+                    streamingText,
+                    currentModel,
+                    inputRef,
+                    errorMsg,
+                    createNewSession,
+                    switchSession,
+                    deleteSession,
+                    sendMessage,
+                    quickSend,
+                    adjustTextareaHeight,
+                    renderMarkdown,
+                    stopStreaming
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+image:
+  upload:
+    type: local
+    local:
+      path: /tmp/upload
+      host: http://localhost:8080
+    oss:
+      endpoint: 
+      access-key-id: 
+      access-key-secret: 
+      bucket-name: 
+      host: 

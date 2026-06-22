@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- 用户关注/粉丝列表片段，供Ajax加载使用 -->
+    <div th:each="follow : ${followList.list}" class="follow-item" style="display: flex; align-items: center; gap: 12px; padding: 12px 20px; border-bottom: 1px solid #f0f0f0;">
+        <img th:src="${follow.photo != null and !follow.photo.isEmpty() ? follow.photo : '/img/default-avatar.png'}" src="/img/default-avatar.png" style="width: 40px; height: 40px; border-radius: 50%;" alt="avatar">
+        <div>
+            <div class="follow-name" th:text="${follow.nickName != null ? follow.nickName : follow.userName}" style="font-size: 15px; font-weight: 500;">用户名</div>
+        </div>
+        <button class="follow-btn"
+                th:attr="data-userid=${follow.userId}"
+                th:classappend="${follow.followed} ? 'followed' : ''"
+                th:text="${follow.followed} ? '已关注' : '关注'"
+                onclick="toggleFollow(this)"
+                style="margin-left: auto; padding: 4px 16px; border-radius: 4px; font-size: 13px; cursor: pointer; border: 1px solid #ff8721; background: #fff; color: #ff8721;">
+            关注
+        </button>
+    </div>
+    <script th:inline="javascript">
+        function toggleFollow(btn) {
+            var userId = btn.getAttribute('data-userid');
+            var isFollowed = btn.classList.contains('followed');
+            var req = {
+                userId: userId,
+                followUserId: [[${follow != null ? follow.userId : 0}]],
+                relationType: isFollowed ? 2 : 1
+            };
+            fetch('/user/api/saveUserRelation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(req)
+            }).then(function(res) { return res.json(); })
+            .then(function(data) {
+                if (data.status && data.status.code === 0) {
+                    if (isFollowed) {
+                        btn.classList.remove('followed');
+                        btn.textContent = '关注';
+                        btn.style.background = '#fff';
+                        btn.style.color = '#ff8721';
+                    } else {
+                        btn.classList.add('followed');
+                        btn.textContent = '已关注';
+                        btn.style.background = '#ff8721';
+                        btn.style.color = '#fff';
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

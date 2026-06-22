@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>活跃用户榜 - Tech Forum</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Header */
+        .header { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .header .container { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #ff8721; }
+        .logo span { color: #333; font-size: 14px; font-weight: normal; margin-left: 8px; }
+        .nav { display: flex; gap: 8px; align-items: center; }
+        .nav a { padding: 8px 16px; border-radius: 4px; font-size: 15px; color: #555; transition: all 0.3s; }
+        .nav a:hover { background: #f0f0f0; color: #ff8721; }
+        .nav a.active { background: #ff8721; color: #fff; }
+
+        /* Search Box */
+        .header-search { display: flex; align-items: center; gap: 8px; }
+        .header-search form { display: flex; align-items: center; background: #f5f7fa; border-radius: 20px; padding: 4px 12px; border: 1px solid #e8e8e8; transition: border-color 0.2s; }
+        .header-search form:focus-within { border-color: #ff8721; }
+        .header-search input { border: none; background: transparent; padding: 6px 8px; font-size: 14px; width: 180px; outline: none; }
+        .header-search button { background: none; border: none; cursor: pointer; padding: 4px; color: #999; transition: color 0.2s; }
+        .header-search button:hover { color: #ff8721; }
+
+        /* User Actions */
+        .user-actions { display: flex; gap: 10px; align-items: center; }
+        .user-actions a { padding: 6px 16px; border-radius: 4px; font-size: 14px; transition: all 0.2s; }
+        .btn-write { padding: 6px 18px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff !important; border-radius: 16px; font-size: 13px; font-weight: 500; transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap; }
+        .btn-write:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+        .btn-login { color: #ff8721; border: 1px solid #ff8721; }
+        .btn-login:hover { background: #ff8721; color: #fff; }
+        .btn-register { background: #ff8721; color: #fff; }
+        .btn-register:hover { background: #e67318; }
+        .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .user-info img { width: 32px; height: 32px; border-radius: 50%; }
+        .user-info span { font-size: 14px; color: #333; }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 4px; min-width: 120px; padding: 8px 0; z-index: 200; }
+        .dropdown:hover .dropdown-content,
+        .dropdown-content:hover { display: block; }
+        .dropdown-content::before { content: ''; position: absolute; top: -5px; left: 0; right: 0; height: 5px; }
+        .dropdown-content a { display: block; padding: 8px 16px; font-size: 14px; color: #333; }
+        .dropdown-content a:hover { background: #f5f5f5; color: #ff8721; }
+
+        /* Main */
+        .main { max-width: 900px; margin: 20px auto; padding: 0 20px; flex: 1; }
+
+        /* Page Title */
+        .page-title { font-size: 24px; font-weight: bold; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+        .page-title::before { content: ''; width: 4px; height: 24px; background: #ff8721; border-radius: 2px; }
+
+        /* Tab Filter */
+        .tab-filter { display: flex; gap: 8px; margin-bottom: 20px; background: #fff; padding: 8px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tab-item { 
+            padding: 10px 20px; border-radius: 6px; font-size: 14px; color: #666; 
+            transition: all 0.3s; cursor: pointer; flex: 1; text-align: center;
+        }
+        .tab-item:hover { background: #fff5f0; color: #ff8721; }
+        .tab-item.active { background: #ff8721; color: #fff; font-weight: 600; }
+
+        /* Rank Card */
+        .rank-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; }
+        .rank-card-header { padding: 15px 20px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff; display: flex; align-items: center; justify-content: space-between; }
+        .rank-card-title { font-size: 16px; font-weight: bold; display: flex; align-items: center; gap: 8px; }
+        .rank-card-title::before { content: '🏆'; }
+        .rank-card-period { font-size: 13px; opacity: 0.9; }
+        
+        /* Rank Items */
+        .rank-item { display: flex; align-items: center; padding: 16px 20px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
+        .rank-item:last-child { border-bottom: none; }
+        .rank-item:hover { background: #fafafa; }
+        
+        .rank-num { 
+            width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; 
+            justify-content: center; font-weight: bold; font-size: 14px; margin-right: 16px; 
+            background: #f0f2f5; color: #999; flex-shrink: 0;
+        }
+        .rank-num.top1 { background: linear-gradient(135deg, #ffd700, #ffb700); color: #fff; box-shadow: 0 2px 8px rgba(255,215,0,0.3); }
+        .rank-num.top2 { background: linear-gradient(135deg, #c0c0c0, #a8a8a8); color: #fff; box-shadow: 0 2px 8px rgba(192,192,192,0.3); }
+        .rank-num.top3 { background: linear-gradient(135deg, #cd7f32, #b87333); color: #fff; box-shadow: 0 2px 8px rgba(205,127,50,0.3); }
+        
+        .rank-user { flex: 1; display: flex; align-items: center; gap: 12px; }
+        .rank-avatar { 
+            width: 44px; height: 44px; border-radius: 50%; object-fit: cover; 
+            border: 2px solid #f0f2f5;
+        }
+        .rank-avatar-placeholder { 
+            width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #ff8721, #ff6b35);
+            color: #fff; display: flex; align-items: center; justify-content: center; 
+            font-size: 18px; font-weight: bold;
+        }
+        
+        .rank-info { flex: 1; }
+        .rank-name { font-weight: 600; color: #333; font-size: 15px; margin-bottom: 2px; }
+        .rank-desc { font-size: 12px; color: #999; }
+        
+        .rank-score { 
+            text-align: right; flex-shrink: 0;
+        }
+        .rank-score-value { font-size: 20px; font-weight: bold; color: #ff8721; }
+        .rank-score-label { font-size: 11px; color: #999; }
+        
+        /* Empty */
+        .empty-tip { text-align: center; padding: 60px 20px; color: #999; background: #fff; border-radius: 8px; }
+        .empty-tip h3 { margin-bottom: 10px; color: #666; font-size: 18px; }
+        .empty-tip p { font-size: 14px; margin-bottom: 15px; }
+        .empty-tip a { color: #ff8721; }
+
+        /* Footer */
+        .footer { background: #fff; padding: 20px; text-align: center; color: #999; font-size: 13px; border-top: 1px solid #eee; margin-top: 20px; }
+        .footer a { color: #ff8721; }
+
+        @media (max-width: 768px) {
+            .tab-item { padding: 8px 12px; font-size: 13px; }
+            .rank-avatar, .rank-avatar-placeholder { width: 36px; height: 36px; }
+            .rank-score-value { font-size: 16px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <a href="/" class="logo">Tech Forum<span>学编程，就上Tech Forum</span></a>
+            <div class="nav">
+                <a href="/">首页</a>
+                <a href="/article/list">全部文章</a>
+                <a href="/column/list">专栏</a>
+                <a href="/rank/month" class="active">排行</a>
+                <a href="/chat">AI聊天</a>
+                <a href="/article/edit" class="btn-write" th:if="${global != null and global.isLogin == true}">&#x272A; 发文章</a>
+            </div>
+            <div class="header-search">
+                <form action="/search" method="get">
+                    <input type="text" name="key" placeholder="搜索文章标题、标签..." required>
+                    <button type="submit">🔍</button>
+                </form>
+            </div>
+            <div class="user-actions">
+                <th:block th:if="${global == null or global.isLogin == false}">
+                    <a href="/login" class="btn-login">登录</a>
+                    <a href="/login" class="btn-register">注册</a>
+                </th:block>
+                <div th:if="${global != null and global.isLogin == true}" style="display:flex;align-items:center;gap:8px;">
+                    <a class="msg-icon" href="/message" title="私信">&#x2709;<span class="msg-badge" id="msgBadge" style="display:none;">0</span></a>
+                    <div class="dropdown">
+                    <div class="user-info">
+                        <img th:src="${global.user != null and global.user.photo != null ? global.user.photo : '/img/default-avatar.png'}" alt="avatar">
+                        <span th:text="${global.user != null ? global.user.userName : '用户'}">用户名</span>
+                    </div>
+                    <div class="dropdown-content">
+                        <a th:href="'/user/home?userId=' + ${global.user != null ? global.user.userId : 0}">个人中心</a>
+                        <a href="/logout">退出登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <h1 class="page-title">活跃用户榜</h1>
+
+        <!-- Tab筛选 -->
+        <div class="tab-filter">
+            <a href="/rank/day" class="tab-item" th:classappend="${#ctx.springRequestContext.requestUri == '/rank/day'} ? 'active' : ''">
+                📅 日榜
+            </a>
+            <a href="/rank/week" class="tab-item" th:classappend="${#ctx.springRequestContext.requestUri == '/rank/week'} ? 'active' : ''">
+                📆 周榜
+            </a>
+            <a href="/rank/month" class="tab-item" th:classappend="${#ctx.springRequestContext.requestUri == '/rank/month'} ? 'active' : ''">
+                📆 月榜
+            </a>
+            <a href="/rank/all" class="tab-item" th:classappend="${#ctx.springRequestContext.requestUri == '/rank/all'} ? 'active' : ''">
+                🏆 总榜
+            </a>
+        </div>
+
+        <!-- 排行榜 -->
+        <div class="rank-card">
+            <div class="rank-card-header">
+                <div class="rank-card-title" th:text="${vo.result != null and vo.result.time != null} ? ${vo.result.time.desc} : '活跃用户排行'">
+                    活跃排行
+                </div>
+                <div class="rank-card-period" th:text="${vo.result != null and vo.result.time != null} ? ${#temporals.format(T(java.time.LocalDate).now(), 'yyyy-MM-dd')} : ''">
+                    统计周期
+                </div>
+            </div>
+            
+            <th:block th:if="${vo.result != null and vo.result.items != null and !vo.result.items.isEmpty()}">
+                <div class="rank-item" th:each="item : ${vo.result.items}">
+                    <span class="rank-num" 
+                          th:classappend="${item.rank == 1} ? 'top1' : (${item.rank == 2} ? 'top2' : (${item.rank == 3} ? 'top3' : ''))" 
+                          th:text="${item.rank}">1</span>
+                    
+                    <div class="rank-user">
+                        <img th:if="${item.avatar != null and !item.avatar.isEmpty()}" 
+                             th:src="${item.avatar}" 
+                             class="rank-avatar" 
+                             alt="avatar" />
+                        <div th:if="${item.avatar == null or item.avatar.isEmpty()}" 
+                             class="rank-avatar-placeholder"
+                             th:text="${item.userName != null and item.userName.length() > 0} ? ${item.userName.substring(0,1)} : '?'">?</div>
+                        
+                        <div class="rank-info">
+                            <div class="rank-name" th:text="${item.userName}">用户名</div>
+                            <div class="rank-desc">活跃值</div>
+                        </div>
+                    </div>
+                    
+                    <div class="rank-score">
+                        <div class="rank-score-value" th:text="${item.count}">0</div>
+                        <div class="rank-score-label">活跃分</div>
+                    </div>
+                </div>
+            </th:block>
+            
+            <div th:if="${vo.result == null or vo.result.items == null or vo.result.items.isEmpty()}" class="empty-tip">
+                <h3>暂无排行数据</h3>
+                <p>快来发布文章和参与互动吧！</p>
+                <a href="/article/edit">发布文章</a>
+                <span> | </span>
+                <a href="/">返回首页</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Copyright &copy; 2026 Tech Forum  - 技术人的开源社区</div>
+    </div>
+<script>
+(function() {
+    function fetchUnread() {
+        fetch('/chat/api/unread').then(function(r) { return r.json(); }).then(function(res) {
+            if (res.status && res.status.code === 200 && res.result !== undefined) {
+                var b = document.getElementById('msgBadge');
+                if (b) { b.textContent = res.result; b.style.display = res.result > 0 ? 'flex' : 'none'; }
+            }
+        }).catch(function() {});
+    }
+    fetchUnread();
+    setInterval(fetchUnread, 30000);
+})();
+</script>
+</body>
+</html>

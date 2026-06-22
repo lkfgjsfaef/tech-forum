@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章列表 - 论坛</title>
+    <link rel="stylesheet" href="/css/three/bootstrap.min.css">
+    <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-12">
+                <h2 class="mb-4">文章列表</h2>
+                <div class="mb-4">
+                    <a href="/article/create" class="btn btn-primary">发布文章</a>
+                    <a href="/article/my" class="btn btn-secondary ml-2">我的文章</a>
+                </div>
+                <div class="list-group">
+                    <div th:each="article : ${articles}" class="list-group-item">
+                        <h4 class="mb-2"><a th:href="@{/article/detail/{id}(id=${article.id})}" th:text="${article.title}"></a></h4>
+                        <p class="mb-2" th:text="${article.summary}"></p>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-muted">发布时间：[[${article.createTime}]]</span>
+                            <span class="text-muted">浏览：[[${article.readCount}]] | 评论：[[${article.commentCount}]] | 点赞：[[${article.likeCount}]]</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/bootstrap.min.js"></script>
+</body>
+</html>

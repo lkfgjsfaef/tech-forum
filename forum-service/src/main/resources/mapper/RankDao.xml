@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.rank.repository.dao.RankDao">
+
+    <!-- 基于用户在 user_foot 中的活跃度（阅读+点赞+评论+收藏）进行排行 -->
+    <select id="queryActivityRank" resultType="com.example.forum.api.model.vo.rank.dto.RankItemDTO">
+        SELECT
+            uf.document_user_id as userId,
+            COALESCE(MAX(ui.user_name), '匿名') as userName,
+            COALESCE(MAX(ui.photo), '') as avatar,
+            COALESCE(SUM(
+                CASE WHEN uf.read_stat = 1 THEN 1 ELSE 0 END +
+                CASE WHEN uf.praise_stat = 1 THEN 2 ELSE 0 END +
+                CASE WHEN uf.comment_stat = 1 THEN 3 ELSE 0 END +
+                CASE WHEN uf.collection_stat = 1 THEN 2 ELSE 0 END
+            ), 0) as count
+        FROM user_foot uf
+        LEFT JOIN user_info ui ON uf.document_user_id = ui.user_id AND ui.deleted = 0
+        WHERE uf.document_user_id > 0
+        <if test="days > 0">
+            AND uf.create_time >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        </if>
+        AND uf.document_type = 1
+        GROUP BY uf.document_user_id
+        ORDER BY count DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${vo.article != null} ? '编辑文章 - Tech Forum' : '发布文章 - Tech Forum'">文章编辑 - Tech Forum</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; }
+
+        /* ===== 导航栏（与首页100%一致）===== */
+        .header { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; min-height: 56px; }
+        .header .container { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #ff8721; text-decoration: none; display: flex; align-items: baseline; gap: 8px; }
+        .logo span { color: #333; font-size: 14px; font-weight: normal; }
+        .nav { display: flex; gap: 6px; align-items: center; }
+        .nav a { padding: 8px 16px; border-radius: 4px; font-size: 15px; color: #555; text-decoration: none; transition: all 0.2s; white-space: nowrap; }
+        .nav a:hover { background: #f0f0f0; color: #ff8721; }
+        .nav a.active { background: #ff8721; color: #fff; }
+
+        /* Search Box */
+        .header-search { display: flex; align-items: center; gap: 8px; }
+        .header-search form { display: flex; align-items: center; background: #f5f7fa; border-radius: 20px; padding: 4px 12px; border: 1px solid #e8e8e8; transition: border-color 0.2s; }
+        .header-search input { border: none; background: transparent; padding: 6px 8px; font-size: 14px; width: 180px; outline: none; }
+        .header-search button { background: none; border: none; cursor: pointer; padding: 4px 8px; font-size: 16px; color: #999; }
+        .header-search button:hover { color: #ff8721; }
+
+        /* User Actions */
+        .user-actions { display: flex; gap: 10px; align-items: center; }
+        .user-actions a { padding: 6px 16px; border-radius: 4px; font-size: 14px; text-decoration: none; transition: all 0.2s; white-space: nowrap; }
+        .btn-login { color: #ff8721 !important; border: 1px solid #ff8721; }
+        .btn-login:hover { background: #ff8721; color: #fff !important; }
+        .btn-register { background: #ff8721; color: #fff !important; }
+        .btn-register:hover { background: #e67318; }
+        .btn-write { padding: 6px 18px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff !important; border-radius: 16px; font-size: 13px; font-weight: 500; transition: transform 0.2s, box-shadow 0.2s; }
+        .btn-write:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+        .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; text-decoration: none; }
+        .user-info img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+        .user-info span { font-size: 14px; color: #333; }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 4px; min-width: 120px; padding: 8px 0; z-index: 200; }
+        .dropdown:hover .dropdown-content { display: block; }
+        .dropdown-content::before { content: ''; position: absolute; top: -5px; left: 0; right: 0; height: 5px; }
+        .dropdown-content a { display: block; padding: 8px 16px; font-size: 14px; color: #333; text-decoration: none; }
+        .dropdown-content a:hover { background: #f5f5f5; color: #ff8721; }
+
+        /* ===== 编辑区域 ===== */
+        .main { max-width: 900px; margin: 24px auto; padding: 0 20px; }
+        .editor-card { background: #fff; border-radius: 8px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+        .page-title { font-size: 22px; font-weight: 600; color: #333; margin-bottom: 28px; padding-bottom: 12px; border-bottom: 2px solid #ff8721; display: inline-block; }
+        .form-group { margin-bottom: 22px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #444; font-size: 14px; }
+        .form-group label span { color: #e74c3c; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 11px 14px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; transition: border-color 0.2s; font-family: inherit; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #ff8721; box-shadow: 0 0 0 2px rgba(255,135,33,0.1); }
+        .form-row { display: flex; gap: 18px; }
+        .form-row .form-group:first-child { flex: 3; }
+        .form-row .form-group:last-child { flex: 1; min-width: 160px; }
+
+        /* 编辑器容器 */
+        .editor-wrapper { border: 1px solid #d9d9d9; border-radius: 6px; overflow: hidden; background: #fff; }
+        .editor-wrapper .vditor { border: none !important; }
+        .editor-fallback { width: 100%; min-height: 350px; padding: 16px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 15px; line-height: 1.8; resize: vertical; font-family: 'Monaco', 'Menlo', 'Consolas', monospace; display: none; }
+        .editor-fallback.show { display: block; }
+        .editor-tip { font-size: 13px; color: #999; margin-top: 6px; }
+
+        .btn-group { display: flex; gap: 12px; margin-top: 28px; padding-top: 20px; border-top: 1px solid #eee; }
+        .btn { padding: 11px 28px; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; transition: all 0.25s; font-weight: 500; }
+        .btn-primary { background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff; }
+        .btn-primary:hover { background: linear-gradient(135deg, #e67319, #e55a1a); box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+        .btn-secondary { background: #f5f5f5; color: #666; border: 1px solid #ddd; }
+        .btn-secondary:hover { background: #ebebeb; color: #333; }
+
+        .toast { position: fixed; top: 24px; right: 24px; padding: 14px 24px; background: #52c41a; color: #fff; border-radius: 8px; display: none; z-index: 10000; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .toast.error { background: #f5222d; }
+        .column-hint { background: linear-gradient(135deg, #fff7ed, #ffedd5); border: 1px solid #ffd8a8; border-radius: 6px; padding: 10px 16px; margin-bottom: 20px; font-size: 14px; color: #ad6800; display: none; align-items: center; gap: 8px; }
+        .column-hint.show { display: flex; }
+        .loading-mask { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 99999; justify-content: center; align-items: center; }
+        .loading-mask.show { display: flex; }
+        .loading-box { background: #fff; padding: 30px 48px; border-radius: 12px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+        .loading-box p { margin-top: 12px; font-size: 15px; color: #666; }
+        .spinner { width: 36px; height: 36px; border: 3px solid #eee; border-top-color: #ff8721; border-radius: 50%; animation: spin 0.6s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        @media (max-width: 768px) {
+            .form-row { flex-direction: column; gap: 0; }
+            .header .container { padding: 10px 15px; }
+            .nav a { padding: 6px 10px; font-size: 13px; }
+            .header-search input { width: 120px; }
+            .editor-card { padding: 20px 16px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ========== 导航栏 ========== -->
+<div class="header" id="mainHeader">
+    <div class="container">
+        <a href="/" class="logo">Tech Forum<span>学编程，就上Tech Forum</span></a>
+        <div class="nav">
+            <a href="/">首页</a>
+            <a href="/article/list">全部文章</a>
+            <a href="/column/list">专栏</a>
+            <a href="/rank/month">排行</a>
+            <a href="/chat">AI聊天</a>
+            <a href="/article/edit" class="btn-write" th:if="${global != null and global.isLogin == true}">&#x272A; 发文章</a>
+        </div>
+        <div class="header-search">
+            <form action="/search" method="get">
+                <input type="text" name="key" placeholder="搜索文章标题、标签..." required>
+                <button type="submit">&#128269;</button>
+            </form>
+        </div>
+        <div class="user-actions">
+            <!-- 未登录 -->
+            <th:block th:if="${global == null or global.isLogin == false}">
+                <a href="/login" class="btn-login">登录</a>
+                <a href="/login" class="btn-register">注册</a>
+            </th:block>
+            <!-- 已登录 -->
+            <div th:if="${global != null and global.isLogin == true}" style="display:flex;align-items:center;gap:8px;">
+                <a class="msg-icon" href="/message" title="私信">&#x2709;<span class="msg-badge" id="msgBadge" style="display:none;">0</span></a>
+                <div class="dropdown">
+                <a href="javascript:;" class="user-info">
+                    <img th:src="${global.user != null and global.user.photo != null ? global.user.photo : '/img/default-avatar.png'}" alt="avatar" onerror="this.src='/img/default-avatar.png'">
+                    <span th:text="${global.user != null ? global.user.userName : '用户'}">用户名</span>
+                </a>
+                <div class="dropdown-content">
+                    <a th:href="'/user/home?userId=' + ${global.user.userId}">个人中心</a>
+                    <a href="/logout">退出登录</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== 主内容区 ========== -->
+<div class="main">
+    <div class="editor-card">
+        <div id="columnHint" class="column-hint">
+            <span>📚</span>
+            <span>正在为专栏创建文章，发布后将自动关联到该专栏</span>
+            <a id="columnHintLink" href="#" style="color: #ff8721; margin-left: auto; text-decoration: none; font-weight: 500;">查看专栏 →</a>
+        </div>
+
+        <h1 class="page-title" th:text="${vo.article != null} ? '编辑文章' : '发布新文章'">发布新文章</h1>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label>文章标题 <span>*</span></label>
+                <input type="text" id="title" name="title"
+                       th:value="${vo.article != null} ? ${vo.article.title} : ''"
+                       placeholder="请输入一个有吸引力的标题..." required>
+            </div>
+            <div class="form-group">
+                <label>文章分类 <span>*</span></label>
+                <select id="category" required>
+                    <option value="">请选择分类</option>
+                    <option th:each="cat : ${vo.categories}"
+                            th:if="${cat.categoryName != null and cat.categoryName != ''}"
+                            th:value="${cat.categoryId}"
+                            th:text="${cat.categoryName}"
+                            th:selected="${vo.article != null and vo.article.categoryId == cat.categoryId}">
+                    </option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 专栏选择（可选） -->
+        <div class="form-group" th:if="${vo.columns != null and !vo.columns.isEmpty()}">
+            <label>关联专栏（可选）</label>
+            <select id="columnSelect">
+                <option value="">不关联专栏</option>
+                <option th:each="col : ${vo.columns}"
+                        th:value="${col.columnId}"
+                        th:text="${col.column}">
+                </option>
+            </select>
+            <p style="font-size: 12px; color: #999; margin-top: 4px;">选择后，文章将发布到对应专栏中</p>
+        </div>
+
+        <div class="form-group" th:unless="${vo.columns != null and !vo.columns.isEmpty()}">
+            <label>关联专栏</label>
+            <p style="font-size: 13px; color: #666; padding: 8px 0;">
+                暂无专栏， 
+                <a href="/column/list" style="color: #ff8721; text-decoration: none;">去创建专栏 →</a>
+            </p>
+        </div>
+
+        <div class="form-group">
+            <label>文章摘要</label>
+            <input type="text" id="summary" name="summary"
+                   th:value="${vo.article != null} ? ${vo.article.summary} : ''"
+                   placeholder="简单描述文章内容，方便读者快速了解（可选）">
+        </div>
+
+        <div class="form-group">
+            <label>文章内容 <span>*</span></label>
+            <p class="editor-tip">支持 Markdown 语法，可使用工具栏格式化文本或上传图片</p>
+            
+            <!-- 编辑器容器：Vditor优先，失败则降级为textarea -->
+            <div class="editor-wrapper" id="editorWrapper">
+                <div id="vditor"></div>
+            </div>
+            <textarea id="contentFallback" class="editor-fallback"
+                      placeholder="在这里编写文章内容（支持Markdown语法）..."
+                      th:text="${vo.article != null and vo.article.content != null} ? ${vo.article.content} : ''"></textarea>
+            <input type="hidden" id="content" name="content" value="">
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="submitArticle()">&#x270D; 发布文章</button>
+            <button class="btn btn-secondary" onclick="saveDraft()">&#x1F4BE; 保存草稿</button>
+            <a href="/" class="btn btn-secondary">&#x2715; 取消</a>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="loading-mask" id="loadingMask">
+    <div class="loading-box">
+        <div class="spinner"></div>
+        <p>正在发布...</p>
+    </div>
+</div>
+
+<!-- Vditor Markdown 编辑器 (多CDN备选) -->
+<script>
+    // 尝试加载Vditor，失败则使用textarea降级
+    var vditorLoaded = false;
+    var vditorInstance = null;
+
+    function initFallbackEditor() {
+        document.getElementById('editorWrapper').style.display = 'none';
+        var fb = document.getElementById('contentFallback');
+        fb.classList.add('show');
+        
+        // textarea内容同步到hidden input
+        fb.addEventListener('input', function() {
+            document.getElementById('content').value = this.value;
+        });
+        console.log('[编辑器] 使用Textarea降级模式');
+    }
+
+    function loadScript(src, callback) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = callback;
+        s.onerror = function() {
+            console.warn('[编辑器] CDN加载失败: ' + src);
+            if (callback) callback(false);
+        };
+        document.head.appendChild(s);
+    }
+
+    function loadCSS(href) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = href;
+        document.head.appendChild(link);
+    }
+
+    // 多个CDN备选
+    var cdnList = [
+        'https://cdn.jsdelivr.net/npm/vditor@3.10.8',
+        'https://unpkg.com/vditor@3.10.8',
+        'https://cdn.bootcdn.net/ajax/libs/vditor/3.10.8'
+    ];
+    var cdnIndex = 0;
+
+    function tryLoadVditor() {
+        if (cdnIndex >= cdnList.length) {
+            // 所有CDN都失败了，使用降级textarea
+            initFallbackEditor();
+            return;
+        }
+        var cdnBase = cdnList[cdnIndex];
+        cdnIndex++;
+
+        loadCSS(cdnBase + '/dist/index.css');
+        loadScript(cdnBase + '/dist/index.min.js', function(success) {
+            if (success === false) {
+                tryLoadVditor();
+                return;
+            }
+            // Vditor加载成功
+            if (typeof Vditor !== 'undefined') {
+                initVditor();
+            } else {
+                tryLoadVditor();
+            }
+        });
+    }
+
+    function initVditor() {
+        try {
+            vditorInstance = new Vditor('vditor', {
+                height: 420,
+                placeholder: '请输入文章内容，支持 Markdown 语法...\n\n提示：\n- # 标题\n- **粗体** *斜体*\n- ```代码块```\n- > 引用',
+                theme: 'classic',
+                mode: 'wysiwyg',
+                toolbar: [
+                    'emoji', 'headings', 'bold', 'italic', 'strike', '|',
+                    'line', 'quote', 'list', 'ordered-list', 'check', '|',
+                    'code', 'inline-code', 'link', 'table', '|',
+                    'upload', '|', 'undo', 'redo', '|', 'fullscreen'
+                ],
+                preview: { mode: 'both' },
+                cache: { enable: false },
+                upload: { url: '/upload/image', accept: 'image/*' },
+                input: function(value) {
+                    document.getElementById('content').value = value;
+                },
+                after: function() {
+                    vditorLoaded = true;
+                    // 设置初始内容
+                    var initialContent = document.getElementById('contentFallback').value;
+                    if (initialContent) {
+                        vditorInstance.setValue(initialContent);
+                    }
+                    console.log('[编辑器] Vditor初始化成功');
+                }
+            });
+        } catch(e) {
+            console.error('[编辑器] Vditor初始化异常:', e);
+            initFallbackEditor();
+        }
+    }
+
+    // 页面加载完成后初始化编辑器
+    document.addEventListener('DOMContentLoaded', function() {
+        // 延迟一点等Thymeleaf渲染完成
+        setTimeout(function() {
+            tryLoadVditor();
+        }, 100);
+    });
+
+    /* ====== 业务逻辑 ====== */
+    var _global_isLoggedIn = [[${global != null and global.isLogin}]];
+
+    function showToast(msg, isError) {
+        var t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast ' + (isError ? 'error' : '');
+        t.style.display = 'block';
+        setTimeout(function() { t.style.display = 'none'; }, 3000);
+    }
+
+    function checkLogin() {
+        if (!_global_isLoggedIn) {
+            showToast('请先登录后再操作', true);
+            setTimeout(function() { location.href = '/login'; }, 1200);
+            return false;
+        }
+        return true;
+    }
+
+    function getContentValue() {
+        if (vditorLoaded && vditorInstance) {
+            return vditorInstance.getValue();
+        }
+        return document.getElementById('contentFallback').value.trim();
+    }
+
+    function submitArticle() {
+        if (!checkLogin()) return;
+
+        var title = document.getElementById('title').value.trim();
+        var category = document.getElementById('category').value;
+        var summary = document.getElementById('summary').value.trim();
+        var content = getContentValue();
+        var columnSelect = document.getElementById('columnSelect');
+        var columnId = columnSelect ? columnSelect.value : '';
+
+        if (!title) { showToast('请输入文章标题', true); return; }
+        if (!category) { showToast('请选择文章分类', true); return; }
+        if (!content || content.length < 10) { showToast('文章内容不能少于10个字符', true); return; }
+
+        document.getElementById('loadingMask').classList.add('show');
+
+        // 构建请求体
+        var requestBody = {
+            title: title,
+            categoryId: parseInt(category),
+            summary: summary || title,
+            content: content,
+            sourceType: 2
+        };
+
+        // 如果选择了专栏，添加到请求中
+        if (columnId && columnId !== '') {
+            requestBody.columnId = parseInt(columnId);
+        }
+
+        fetch('/article/api/post', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            document.getElementById('loadingMask').classList.remove('show');
+            if (res.code === 0 || (res.status && res.status.code === 0)) {
+                var aid = res.data ? res.data.articleId : null;
+                var params = new URLSearchParams(window.location.search);
+                var fromColumnId = params.get('columnId');
+                showToast('发布成功！');
+                setTimeout(function() {
+                    if (fromColumnId) {
+                        window.location.href = '/column/' + fromColumnId;
+                    } else {
+                        window.location.href = aid ? ('/article/detail/' + aid) : '/';
+                    }
+                }, 1200);
+            } else {
+                showToast((res.msg || res.status.msg || '发布失败'), true);
+            }
+        })
+        .catch(function(err) {
+            document.getElementById('loadingMask').classList.remove('show');
+            showToast('网络错误，请重试', true);
+            console.error(err);
+        });
+    }
+
+    function saveDraft() { submitArticle(); }
+
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        var preTitle = params.get('articleTitle') || params.get('title');
+        var preColumnId = params.get('columnId');
+
+        if (preTitle) {
+            document.getElementById('title').value = decodeURIComponent(preTitle);
+        }
+
+        if (preColumnId) {
+            var hint = document.getElementById('columnHint');
+            var link = document.getElementById('columnHintLink');
+            hint.classList.add('show');
+            link.href = '/column/' + preColumnId;
+
+            setTimeout(function() {
+                var colSelect = document.getElementById('columnSelect');
+                if (colSelect) {
+                    for (var i = 0; i < colSelect.options.length; i++) {
+                        if (colSelect.options[i].value === preColumnId) {
+                            colSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }, 100);
+        }
+    })();
+</script>
+<script>
+(function() {
+    function fetchUnread() {
+        fetch('/chat/api/unread').then(function(r) { return r.json(); }).then(function(res) {
+            if (res.status && res.status.code === 200 && res.result !== undefined) {
+                var b = document.getElementById('msgBadge');
+                if (b) { b.textContent = res.result; b.style.display = res.result > 0 ? 'flex' : 'none'; }
+            }
+        }).catch(function() {});
+    }
+    fetchUnread();
+    setInterval(fetchUnread, 30000);
+})();
+</script>
+</body>
+</html>

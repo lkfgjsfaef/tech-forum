@@ -1,0 +1,26 @@
+view:
+  site:
+    env: dev
+    wxPayEnable: false
+    needLoginArticleReadCount: 30
+    zsxqArticleReadCount: 20
+    needPayArticleReadCount: 20
+    websiteName: 技术社区
+    websiteLogoUrl: /img/logo.svg
+    websiteFaviconIconUrl: /img/favicon.ico
+    paiChatName: AI Chat
+    paiSmartName: AI Smart
+    paiSmartUrl: ${AI_SMART_URL:http://localhost:9527/}
+    zsxqUrl:
+    zsxqPosterUrl:
+    contactMeTitle: 联系我们
+    contactMeWxQrCode:
+    contactMeStarQrCode:
+    pageSize: 20
+    cdnImgStyle:
+    websiteRecord:
+    wxLoginUrl:
+    host: http://127.0.0.1:${server.port}
+    welcomeInfo: 欢迎来到技术社区
+    columnInfoNews: 欢迎来到教程频道！这里汇集了优质的技术专栏内容，助你快速成长！
+    oss:

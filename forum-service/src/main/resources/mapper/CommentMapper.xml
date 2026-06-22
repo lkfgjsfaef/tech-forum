@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.comment.mapper.CommentMapper">
+
+    <insert id="insert" parameterType="com.example.forum.service.comment.entity.Comment" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO comment (article_id, user_id, content, top_comment_id, parent_comment_id, deleted)
+        VALUES (#{articleId}, #{userId}, #{content}, #{topCommentId}, #{parentCommentId}, 0)
+    </insert>
+
+    <update id="update" parameterType="com.example.forum.service.comment.entity.Comment">
+        UPDATE comment SET content = #{content}, update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <select id="findById" resultType="com.example.forum.service.comment.entity.Comment">
+        SELECT * FROM comment WHERE id = #{id} AND deleted = 0 LIMIT 1
+    </select>
+
+    <select id="findByArticleId" resultType="com.example.forum.service.comment.entity.Comment">
+        SELECT * FROM comment WHERE article_id = #{articleId} AND deleted = 0 ORDER BY create_time DESC
+    </select>
+
+    <select id="findByUserId" resultType="com.example.forum.service.comment.entity.Comment">
+        SELECT * FROM comment WHERE user_id = #{userId} AND deleted = 0 ORDER BY create_time DESC
+    </select>
+
+    <!-- 统计评论总数（用于站点统计） -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM comment WHERE deleted = 0
+    </select>
+
+    <!-- 查询文章的顶级评论（parent_comment_id = 0） -->
+    <select id="findTopCommentsByArticleId" resultType="com.example.forum.service.comment.entity.Comment">
+        SELECT * FROM comment
+        WHERE article_id = #{articleId} AND parent_comment_id = 0 AND deleted = 0
+        ORDER BY create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计文章的顶级评论数 -->
+    <select id="countTopCommentsByArticleId" resultType="int">
+        SELECT COUNT(*) FROM comment
+        WHERE article_id = #{articleId} AND parent_comment_id = 0 AND deleted = 0
+    </select>
+
+    <!-- 查询顶级评论下的子评论 -->
+    <select id="findSubCommentsByTopCommentId" resultType="com.example.forum.service.comment.entity.Comment">
+        SELECT * FROM comment
+        WHERE top_comment_id = #{topCommentId} AND deleted = 0
+        ORDER BY create_time ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计顶级评论下的子评论数 -->
+    <select id="countSubCommentsByTopCommentId" resultType="int">
+        SELECT COUNT(*) FROM comment
+        WHERE top_comment_id = #{topCommentId} AND deleted = 0
+    </select>
+
+    <!-- 逻辑删除评论 -->
+    <update id="logicDelete">
+        UPDATE comment SET deleted = 1, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <!-- 统计文章的评论总数 -->
+    <select id="countByArticleId" resultType="int">
+        SELECT COUNT(*) FROM comment WHERE article_id = #{articleId} AND deleted = 0
+    </select>
+
+</mapper>

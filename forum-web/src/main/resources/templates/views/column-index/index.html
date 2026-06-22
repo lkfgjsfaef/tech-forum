@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${vo.column} + ' - Tech Forum'">专栏 - Tech Forum</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Header */
+        .header { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .header .container { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #ff8721; }
+        .logo span { color: #333; font-size: 14px; font-weight: normal; margin-left: 8px; }
+        .nav { display: flex; gap: 8px; align-items: center; }
+        .nav a { padding: 8px 16px; border-radius: 4px; font-size: 15px; color: #555; transition: background 0.2s; }
+        .nav a:hover { background: #f0f0f0; color: #ff8721; }
+        .nav a.active { background: #ff8721; color: #fff; }
+
+        /* Search Box */
+        .header-search { display: flex; align-items: center; gap: 8px; }
+        .header-search form { display: flex; align-items: center; background: #f5f7fa; border-radius: 20px; padding: 4px 12px; border: 1px solid #e8e8e8; transition: border-color 0.2s; }
+        .header-search form:focus-within { border-color: #ff8721; }
+        .header-search input { border: none; background: transparent; padding: 6px 8px; font-size: 14px; width: 180px; outline: none; }
+        .header-search button { background: none; border: none; cursor: pointer; padding: 4px; color: #999; transition: color 0.2s; }
+        .header-search button:hover { color: #ff8721; }
+
+        /* User Actions */
+        .user-actions { display: flex; gap: 10px; align-items: center; }
+        .user-actions a { padding: 6px 16px; border-radius: 4px; font-size: 14px; transition: all 0.2s; }
+        .btn-login { color: #ff8721; border: 1px solid #ff8721; }
+        .btn-login:hover { background: #ff8721; color: #fff; }
+        .btn-register { background: #ff8721; color: #fff; }
+        .btn-register:hover { background: #e67318; }
+        .btn-write { padding: 6px 18px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff !important; border-radius: 16px; font-size: 13px; font-weight: 500; transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap; }
+        .btn-write:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+        .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .user-info img { width: 32px; height: 32px; border-radius: 50%; }
+        .user-info span { font-size: 14px; color: #333; }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 4px; min-width: 120px; padding: 8px 0; z-index: 200; }
+        .dropdown:hover .dropdown-content,
+        .dropdown-content:hover { display: block; }
+        .dropdown-content::before { content: ''; position: absolute; top: -5px; left: 0; right: 0; height: 5px; }
+        .dropdown-content a { display: block; padding: 8px 16px; font-size: 14px; color: #333; }
+        .dropdown-content a:hover { background: #f5f5f5; color: #ff8721; }
+        .main { max-width: 900px; margin: 20px auto; padding: 0 20px; }
+        .column-header { background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff; border-radius: 8px; padding: 40px; margin-bottom: 20px; }
+        .column-header h1 { font-size: 28px; margin-bottom: 10px; }
+        .column-header p { opacity: 0.9; }
+        .article-list { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .article-item { padding: 15px 20px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .article-item:last-child { border-bottom: none; }
+        .article-item a { color: #333; }
+        .article-item a:hover { color: #ff8721; }
+        .article-item .section-num { color: #999; font-size: 14px; min-width: 40px; }
+        .article-item .title { flex: 1; margin-left: 10px; }
+
+        .empty-tip { text-align: center; padding: 60px; color: #999; }
+
+        /* 文章管理 */
+        .manage-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .btn-add-article { padding: 8px 20px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff !important; border-radius: 6px; font-size: 14px; cursor: pointer; border: none; transition: all 0.2s; }
+        .btn-add-article:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+        .btn-edit-column { padding: 6px 16px; background: #f5f7fa; color: #666; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 13px; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+        .btn-edit-column:hover { color: #ff8721; border-color: #ff8721; }
+        .btn-remove { padding: 4px 12px; background: #fff2f0; color: #ff4d4f; border: 1px solid #ffccc7; border-radius: 4px; font-size: 12px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .btn-remove:hover { background: #ff4d4f; color: #fff; border-color: #ff4d4f; }
+
+        /* 弹窗 */
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 9999; }
+        .modal-overlay.show { display: flex; }
+        .modal-box { background: #fff; border-radius: 12px; width: 600px; max-width: 90vw; max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.2); }
+        .modal-header { padding: 20px 24px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-header h3 { font-size: 18px; }
+        .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #999; line-height: 1; }
+        .modal-close:hover { color: #333; }
+        .modal-body { padding: 20px 24px; }
+        .modal-footer { padding: 16px 24px; border-top: 1px solid #f0f0f0; display: flex; gap: 10px; justify-content: flex-end; }
+
+        .tab-btns { display: flex; gap: 0; margin-bottom: 16px; border-bottom: 2px solid #f0f0f0; }
+        .tab-btn { padding: 10px 24px; background: none; border: none; font-size: 15px; cursor: pointer; color: #666; position: relative; transition: color 0.2s; }
+        .tab-btn:hover { color: #ff8721; }
+        .tab-btn.active { color: #ff8721; font-weight: 600; }
+        .tab-btn.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: #ff8721; }
+
+        .article-select-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; border: 1px solid #e8e8e8; border-radius: 8px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s; }
+        .article-select-item:hover { border-color: #ff8721; background: #fff9f5; }
+        .article-select-item.selected { border-color: #ff8721; background: #fff9f5; }
+        .article-select-item .art-title { font-size: 14px; color: #333; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .article-select-item .art-check { width: 20px; height: 20px; border: 2px solid #ddd; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-left: 12px; flex-shrink: 0; }
+        .article-select-item.selected .art-check { border-color: #ff8721; background: #ff8721; color: #fff; }
+
+        .btn-confirm { padding: 10px 28px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff; border: none; border-radius: 6px; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+        .btn-confirm:hover { box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+        .btn-cancel { padding: 10px 24px; background: #f5f7fa; color: #666; border: 1px solid #e8e8e8; border-radius: 6px; font-size: 14px; cursor: pointer; }
+        .btn-cancel:hover { background: #e8e8e8; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <a href="/" class="logo">Tech Forum<span>学编程，就上Tech Forum</span></a>
+            <div class="nav">
+                <a href="/">首页</a>
+                <a href="/article/list">全部文章</a>
+                <a href="/column/list" class="active">专栏</a>
+                <a href="/rank/month">排行</a>
+                <a href="/chat">AI聊天</a>
+                <a href="/article/edit" class="btn-write" th:if="${global != null and global.isLogin == true}">&#x272A; 发文章</a>
+            </div>
+            <div class="header-search">
+                <form action="/search" method="get">
+                    <input type="text" name="key" placeholder="搜索文章标题、标签..." required>
+                    <button type="submit">🔍</button>
+                </form>
+            </div>
+            <div class="user-actions">
+                <th:block th:if="${global == null or global.isLogin == false}">
+                    <a href="/login" class="btn-login">登录</a>
+                    <a href="/login" class="btn-register">注册</a>
+                </th:block>
+                <div th:if="${global != null and global.isLogin == true}" style="display:flex;align-items:center;gap:8px;">
+                    <a class="msg-icon" href="/message" title="私信">&#x2709;<span class="msg-badge" id="msgBadge" style="display:none;">0</span></a>
+                    <div class="dropdown">
+                    <div class="user-info">
+                        <img th:src="${global.user != null and global.user.photo != null ? global.user.photo : '/img/default-avatar.png'}" alt="avatar">
+                        <span th:text="${global.user != null ? global.user.userName : '用户'}">用户名</span>
+                    </div>
+                    <div class="dropdown-content">
+                        <a th:href="'/user/home?userId=' + ${global.user != null ? global.user.userId : 0}">个人中心</a>
+                        <a href="/logout">退出登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main">
+        <div class="column-header">
+            <h1 th:text="${vo != null} ? ${vo.column} : '专栏详情'">专栏名</h1>
+            <p th:text="${vo != null} ? ${vo.introduction} : ''">专栏简介</p>
+        </div>
+
+        <!-- 管理操作栏（仅作者可见） -->
+        <div class="manage-bar" th:if="${global != null and global.isLogin == true and vo != null and vo.author != null and global.user != null and global.user.userId == vo.author}">
+            <div style="display: flex; gap: 10px;">
+                <button class="btn-add-article" onclick="openAddModal()">+ 添加文章</button>
+                <a th:href="'/column/' + ${vo.columnId} + '/edit'" class="btn-edit-column">✏️ 编辑专栏</a>
+            </div>
+            <a th:href="'/column/list'" style="font-size: 13px; color: #999;">← 返回专栏列表</a>
+        </div>
+
+        <div id="articleListContainer" class="article-list" th:if="${vo != null and vo.articles != null and !vo.articles.isEmpty()}">
+            <div th:each="article, stat : ${vo.articles}" class="article-item">
+                <a th:href="'/column/' + ${vo.columnId} + '/' + ${stat.count}" style="display:flex;flex:1;align-items:center;">
+                    <span class="section-num" th:text="'第' + ${stat.count} + '节'">第1节</span>
+                    <span class="title" th:text="${article.title}">文章标题</span>
+                </a>
+                <button class="btn-remove" th:if="${global != null and global.isLogin == true and vo != null and vo.author != null and global.user != null and global.user.userId == vo.author}"
+                        th:data-article-id="${article.articleId}"
+                        th:data-title="${article.title}"
+                        onclick="removeArticle(this)">移除</button>
+            </div>
+        </div>
+        <div id="emptyTip" th:if="${vo == null or vo.articles == null or vo.articles.isEmpty()}" class="empty-tip">
+            <p>暂无文章目录</p>
+            <p th:if="${global != null and global.isLogin == true and vo != null and vo.author != null and global.user != null and global.user.userId == vo.author}" style="margin-top:10px;">
+                <button class="btn-add-article" onclick="openAddModal()">+ 添加第一篇文章</button>
+            </p>
+        </div>
+    </div>
+
+    <!-- 添加文章弹窗 -->
+    <div id="addArticleModal" class="modal-overlay" onclick="if(event.target===this)closeAddModal()">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>添加文章到专栏</h3>
+                <button class="modal-close" onclick="closeAddModal()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="tab-btns">
+                    <button class="tab-btn active" onclick="switchTab('select', this)">选择已有文章</button>
+                    <button class="tab-btn" onclick="switchTab('create', this)">创建新文章</button>
+                </div>
+
+                <div id="tabSelect">
+                    <div id="myArticlesList" style="max-height: 400px; overflow-y: auto;">
+                        <p style="color:#999;text-align:center;padding:20px;">加载中...</p>
+                    </div>
+                </div>
+
+                <div id="tabCreate" style="display:none;">
+                    <p style="color:#666;font-size:14px;margin-bottom:12px;">填写文章标题，创建后自动关联到本专栏：</p>
+                    <input type="text" id="newArticleTitle" placeholder="输入文章标题..." style="width:100%;padding:12px 16px;border:1px solid #e8e8e8;border-radius:8px;font-size:15px;outline:none;margin-bottom:12px;" onkeydown="if(event.key==='Enter')createAndAdd()">
+                    <input type="hidden" id="currentColumnId" th:value="${vo != null} ? ${vo.columnId} : ''">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeAddModal()">取消</button>
+                <button class="btn-confirm" id="confirmAddBtn" onclick="confirmAdd()" style="display:none;">确认添加</button>
+                <button class="btn-confirm" id="confirmCreateBtn" onclick="createAndAdd()" style="display:none;">创建并添加</button>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const columnId = [[${vo != null} ? ${vo.columnId} : 0]];
+        let selectedArticleId = null;
+        let myArticles = [];
+
+        function openAddModal() {
+            document.getElementById('addArticleModal').classList.add('show');
+            loadMyArticles();
+        }
+
+        function closeAddModal() {
+            document.getElementById('addArticleModal').classList.remove('show');
+            selectedArticleId = null;
+        }
+
+        function switchTab(tab, btn) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            if (tab === 'select') {
+                document.getElementById('tabSelect').style.display = 'block';
+                document.getElementById('tabCreate').style.display = 'none';
+                document.getElementById('confirmAddBtn').style.display = 'inline-block';
+                document.getElementById('confirmCreateBtn').style.display = 'none';
+            } else {
+                document.getElementById('tabSelect').style.display = 'none';
+                document.getElementById('tabCreate').style.display = 'block';
+                document.getElementById('confirmAddBtn').style.display = 'none';
+                document.getElementById('confirmCreateBtn').style.display = 'inline-block';
+            }
+        }
+
+        async function loadMyArticles() {
+            try {
+                const resp = await fetch('/column/api/my-articles');
+                const result = await resp.json();
+                const container = document.getElementById('myArticlesList');
+
+                if (result.status && result.status.code === 0 && result.result && result.result.length > 0) {
+                    myArticles = result.result;
+                    let html = '';
+                    myArticles.forEach(art => {
+                        html += '<div class="article-select-item" data-id="' + art.id + '" onclick="selectArticle(this, ' + art.id + ')">' +
+                            '<span class="art-title">' + (art.title || '(无标题)') + '</span>' +
+                            '<span class="art-check"></span></div>';
+                    });
+                    container.innerHTML = html;
+                } else {
+                    container.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">您还没有发布过文章，请先创建文章</p>';
+                }
+            } catch (e) {
+                console.error('加载文章失败:', e);
+                document.getElementById('myArticlesList').innerHTML = '<p style="color:#ff4d4f;text-align:center;padding:20px;">加载失败，请重试</p>';
+            }
+        }
+
+        function selectArticle(el, articleId) {
+            document.querySelectorAll('.article-select-item').forEach(item => item.classList.remove('selected'));
+            el.classList.add('selected');
+            selectedArticleId = articleId;
+        }
+
+        async function confirmAdd() {
+            if (!selectedArticleId) {
+                alert('请选择一篇文章');
+                return;
+            }
+
+            try {
+                const resp = await fetch('/column/api/' + columnId + '/add-article', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ articleId: selectedArticleId })
+                });
+                const result = await resp.json();
+
+                if (result.status && result.status.code === 0) {
+                    closeAddModal();
+                    location.reload();
+                } else {
+                    alert((result.status && result.status.msg) || '添加失败');
+                }
+            } catch (e) {
+                console.error('添加失败:', e);
+                alert('网络错误，请重试');
+            }
+        }
+
+        async function createAndAdd() {
+            const title = document.getElementById('newArticleTitle').value.trim();
+            if (!title) {
+                alert('请输入文章标题');
+                return;
+            }
+
+            try {
+                window.location.href = '/article/edit?columnId=' + columnId + '&articleTitle=' + encodeURIComponent(title);
+            } catch (e) {
+                console.error('跳转失败:', e);
+            }
+        }
+
+        async function removeArticle(btn) {
+            const articleId = btn.getAttribute('data-article-id');
+            const title = btn.getAttribute('data-title');
+
+            if (!confirm('确定要从专栏中移除「' + title + '」吗？')) {
+                return;
+            }
+
+            try {
+                const resp = await fetch('/column/api/' + columnId + '/remove-article', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ articleId: parseInt(articleId) })
+                });
+                const result = await resp.json();
+
+                if (result.status && result.status.code === 0) {
+                    location.reload();
+                } else {
+                    alert((result.status && result.status.msg) || '移除失败');
+                }
+            } catch (e) {
+                console.error('移除失败:', e);
+                alert('网络错误，请重试');
+            }
+        }
+    </script>
+<script>
+(function() {
+    function fetchUnread() {
+        fetch('/chat/api/unread').then(function(r) { return r.json(); }).then(function(res) {
+            if (res.status && res.status.code === 200 && res.result !== undefined) {
+                var b = document.getElementById('msgBadge');
+                if (b) { b.textContent = res.result; b.style.display = res.result > 0 ? 'flex' : 'none'; }
+            }
+        }).catch(function() {});
+    }
+    fetchUnread();
+    setInterval(fetchUnread, 30000);
+})();
+</script>
+</body>
+</html>

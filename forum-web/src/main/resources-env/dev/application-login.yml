@@ -1,0 +1,6 @@
+# 登录配置
+forum:
+  login:
+    # 本地登录配置
+    local:
+      enabled: true

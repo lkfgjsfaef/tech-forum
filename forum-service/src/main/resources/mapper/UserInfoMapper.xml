@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.user.mapper.UserInfoMapper">
+
+    <insert id="insert">
+        INSERT INTO user_info (user_id, user_name, photo, ip, email, deleted, create_time, update_time)
+        VALUES (#{userId}, #{nickname}, #{photo}, '{}', #{email}, 0, NOW(), NOW())
+    </insert>
+
+    <select id="queryNickNameByUserId" resultType="java.lang.String">
+        SELECT user_name FROM user_info WHERE user_id = #{userId} AND deleted = 0 LIMIT 1
+    </select>
+
+    <select id="countByEmail" resultType="int">
+        SELECT COUNT(*) FROM user_info WHERE email = #{email} AND deleted = 0 LIMIT 1
+    </select>
+
+    <update id="updateUserInfo">
+        UPDATE user_info SET 
+            user_name = #{nickname},
+            photo = #{photo},
+            ip = profile,
+            update_time = NOW()
+        WHERE user_id = #{userId} AND deleted = 0
+    </update>
+
+</mapper>

@@ -1,0 +1,27 @@
+view:
+  site:
+    website-name: Tech Forum
+    website-logo-url: /img/logo.svg
+    website-favicon-icon-url: /img/favicon.ico
+    website-record: 京ICP备xxxxxxxx号
+    page-size: 10
+    cdn-img-style: 
+    host: http://localhost:8080
+    oss: 
+    contact-me-wx-qr-code: 
+    contact-me-star-qr-code: 
+    contact-me-title: 联系我
+    wx-login-url: 
+    welcome-info: 欢迎来到Tech Forum
+    star-info: 
+    zsxq-url: 
+    zsxq-img-url: 
+    zsxq-poster-url: 
+    pai-chat-name: PaiChat
+    pai-smart-name: PaiSmart
+    pai-smart-url: http://localhost:9527/
+    zsxq-article-read-count: 10
+    need-login-article-read-count: 5
+    need-pay-article-read-count: 3
+    column-info-news: 
+    wx-pay-enable: false

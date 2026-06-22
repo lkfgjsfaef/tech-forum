@@ -1,0 +1,362 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.article.mapper.ArticleMapper">
+
+    <!-- 原有基础 CRUD -->
+
+    <select id="findById" resultType="com.example.forum.service.article.entity.Article">
+        SELECT a.id, a.title, a.short_title as shortTitle, a.summary, a.picture as cover,
+               a.user_id as userId, a.category_id as categoryId, a.url_slug as slug,
+               a.source as sourceType, a.source_url as sourceUrl,
+               a.status, a.read_type as readType, a.create_time as createTime, a.update_time as updateTime
+        FROM article a
+        WHERE a.id = #{id} AND a.deleted = 0
+        LIMIT 1
+    </select>
+
+    <select id="findAll" resultType="com.example.forum.service.article.entity.Article">
+        SELECT id, title, summary, user_id as userId, status, create_time as createTime, update_time as updateTime
+        FROM article
+        WHERE deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="findByUserId" resultType="com.example.forum.service.article.entity.Article">
+        SELECT id, title, summary, user_id as userId, status, create_time as createTime, update_time as updateTime
+        FROM article
+        WHERE user_id = #{userId} AND deleted = 0
+        ORDER BY create_time DESC
+    </select>
+
+    <insert id="insert" parameterType="com.example.forum.service.article.entity.Article" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO article (user_id, article_type, title, short_title, url_slug, picture, summary,
+                             category_id, source, source_url, offical_stat, topping_stat, cream_stat, status, deleted,
+                             read_type, create_time, update_time)
+        VALUES (#{userId}, 1, #{title}, #{shortTitle}, '', #{cover}, #{summary},
+                #{categoryId}, #{sourceType}, #{sourceUrl}, 0, 0, 0, #{status}, 0,
+                1, #{createTime}, #{updateTime})
+    </insert>
+
+    <update id="update" parameterType="com.example.forum.service.article.entity.Article">
+        UPDATE article SET title = #{title}, summary = #{summary}, update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <update id="incrementViewCount">
+        INSERT INTO read_count (document_id, document_type, cnt) VALUES (#{id}, 1, 1)
+        ON DUPLICATE KEY UPDATE cnt = cnt + 1
+    </update>
+
+    <update id="incrementCommentCount">
+        UPDATE article SET update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <update id="incrementLikeCount">
+        UPDATE article SET update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <!-- ========== 新增：文章列表查询 (带作者信息) ========== -->
+
+    <resultMap id="ArticleDTOResultMap" type="com.example.forum.api.model.vo.article.dto.ArticleDTO">
+        <id property="articleId" column="articleId"/>
+        <result property="title" column="title"/>
+        <result property="shortTitle" column="shortTitle"/>
+        <result property="summary" column="summary"/>
+        <result property="content" column="content"/>
+        <result property="cover" column="cover"/>
+        <result property="authorId" column="authorId"/>
+        <result property="author" column="author"/>
+        <result property="authorName" column="authorName"/>
+        <result property="authorAvatar" column="authorAvatar"/>
+        <result property="categoryId" column="categoryId"/>
+        <result property="slug" column="slug"/>
+        <result property="source" column="sourceName"/>
+        <result property="sourceType" column="sourceType"/>
+        <result property="sourceUrl" column="sourceUrl"/>
+        <result property="status" column="status"/>
+        <result property="readType" column="readType"/>
+        <result property="readCount" column="readCount"/>
+        <result property="likeCount" column="likeCount"/>
+        <result property="commentCount" column="commentCount"/>
+        <result property="createTime" column="createTime"/>
+        <result property="updateTime" column="updateTime"/>
+    </resultMap>
+
+    <!-- 查询所有已发布文章 -->
+    <select id="queryArticles" resultMap="ArticleDTOResultMap">
+        SELECT
+            a.id as articleId, a.title, a.short_title as shortTitle, a.summary,
+            IFNULL(a.picture, '') as cover,
+            a.user_id as authorId,
+            IFNULL(ui.user_name, '匿名') as author,
+            IFNULL(ui.user_name, '匿名') as authorName,
+            IFNULL(ui.photo, '') as authorAvatar,
+            a.category_id as categoryId,
+            a.url_slug as slug,
+            CASE a.source WHEN 1 THEN '转载' WHEN 2 THEN '原创' WHEN 3 THEN '翻译' ELSE '' END as sourceName,
+            a.source as sourceType,
+            a.source_url as sourceUrl,
+            a.status, a.read_type as readType,
+            IFNULL(rc.cnt, 0) as readCount,
+            (SELECT COUNT(*) FROM user_foot uf WHERE uf.document_id = a.id AND uf.document_type = 1 AND uf.praise_stat = 1) as likeCount,
+            (SELECT COUNT(*) FROM comment c WHERE c.article_id = a.id AND c.deleted = 0) as commentCount,
+            a.create_time as createTime, a.update_time as updateTime
+        FROM article a
+        LEFT JOIN user_info ui ON a.user_id = ui.user_id AND ui.deleted = 0
+        LEFT JOIN read_count rc ON rc.document_id = a.id AND rc.document_type = 1
+        WHERE a.deleted = 0 AND a.status = 1
+        ORDER BY a.topping_stat DESC, a.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 统计所有已发布文章数量 -->
+    <select id="countTotal" resultType="long">
+        SELECT COUNT(*)
+        FROM article
+        WHERE deleted = 0 AND status = 1
+    </select>
+
+    <!-- 按分类查询文章列表 -->
+    <select id="queryArticlesByCategory" resultMap="ArticleDTOResultMap">
+        SELECT
+            a.id as articleId, a.title, a.short_title as shortTitle, a.summary,
+            IFNULL(a.picture, '') as cover,
+            a.user_id as authorId,
+            IFNULL(ui.user_name, '匿名') as author,
+            IFNULL(ui.user_name, '匿名') as authorName,
+            IFNULL(ui.photo, '') as authorAvatar,
+            a.category_id as categoryId,
+            a.url_slug as slug,
+            CASE a.source WHEN 1 THEN '转载' WHEN 2 THEN '原创' WHEN 3 THEN '翻译' ELSE '' END as sourceName,
+            a.source as sourceType,
+            a.source_url as sourceUrl,
+            a.status, a.read_type as readType,
+            IFNULL(rc.cnt, 0) as readCount,
+            (SELECT COUNT(*) FROM user_foot uf WHERE uf.document_id = a.id AND uf.document_type = 1 AND uf.praise_stat = 1) as likeCount,
+            (SELECT COUNT(*) FROM comment c WHERE c.article_id = a.id AND c.deleted = 0) as commentCount,
+            a.create_time as createTime, a.update_time as updateTime
+        FROM article a
+        LEFT JOIN user_info ui ON a.user_id = ui.user_id AND ui.deleted = 0
+        LEFT JOIN read_count rc ON rc.document_id = a.id AND rc.document_type = 1
+        WHERE a.deleted = 0 AND a.status = 1
+        <if test="categoryId != null and categoryId > 0">
+            AND a.category_id = #{categoryId}
+        </if>
+        ORDER BY a.topping_stat DESC, a.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 按分类统计文章数量 -->
+    <select id="countArticlesByCategory" resultType="java.util.Map">
+        SELECT category_id as categoryId, COUNT(*) as cnt
+        FROM article
+        WHERE deleted = 0 AND status = 1
+        GROUP BY category_id
+    </select>
+
+    <!-- 按分类总数 -->
+    <select id="countTotalByCategory" resultType="long">
+        SELECT COUNT(*)
+        FROM article
+        WHERE deleted = 0 AND status = 1
+        <if test="categoryId != null and categoryId > 0">
+            AND category_id = #{categoryId}
+        </if>
+    </select>
+
+    <!-- 查询置顶文章 -->
+    <select id="queryTopArticles" resultMap="ArticleDTOResultMap">
+        SELECT
+            a.id as articleId, a.title, a.short_title as shortTitle, a.summary,
+            IFNULL(a.picture, '') as cover,
+            a.user_id as authorId,
+            IFNULL(ui.user_name, '匿名') as author,
+            IFNULL(ui.user_name, '匿名') as authorName,
+            IFNULL(ui.photo, '') as authorAvatar,
+            a.category_id as categoryId,
+            a.url_slug as slug,
+            CASE a.source WHEN 1 THEN '转载' WHEN 2 THEN '原创' WHEN 3 THEN '翻译' ELSE '' END as sourceName,
+            a.source as sourceType,
+            a.status, a.read_type as readType,
+            IFNULL(rc.cnt, 0) as readCount,
+            (SELECT COUNT(*) FROM user_foot uf WHERE uf.document_id = a.id AND uf.document_type = 1 AND uf.praise_stat = 1) as likeCount,
+            (SELECT COUNT(*) FROM comment c WHERE c.article_id = a.id AND c.deleted = 0) as commentCount,
+            a.create_time as createTime, a.update_time as updateTime
+        FROM article a
+        LEFT JOIN user_info ui ON a.user_id = ui.user_id AND ui.deleted = 0
+        LEFT JOIN read_count rc ON rc.document_id = a.id AND rc.document_type = 1
+        WHERE a.deleted = 0 AND a.status = 1 AND a.topping_stat = 1
+        <if test="categoryId != null and categoryId > 0">
+            AND a.category_id = #{categoryId}
+        </if>
+        ORDER BY a.create_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 查询文章详情 -->
+    <select id="queryArticleDetail" resultMap="ArticleDTOResultMap">
+        SELECT
+            a.id as articleId, a.title, a.short_title as shortTitle, a.summary,
+            ad.content,
+            IFNULL(a.picture, '') as cover,
+            a.user_id as authorId,
+            IFNULL(ui.user_name, '匿名') as author,
+            IFNULL(ui.user_name, '匿名') as authorName,
+            IFNULL(ui.photo, '') as authorAvatar,
+            a.category_id as categoryId,
+            a.url_slug as slug,
+            CASE a.source WHEN 1 THEN '转载' WHEN 2 THEN '原创' WHEN 3 THEN '翻译' ELSE '' END as sourceName,
+            a.source as sourceType,
+            a.source_url as sourceUrl,
+            a.status, a.read_type as readType,
+            IFNULL(rc.cnt, 0) as readCount,
+            (SELECT COUNT(*) FROM user_foot uf WHERE uf.document_id = a.id AND uf.document_type = 1 AND uf.praise_stat = 1) as likeCount,
+            (SELECT COUNT(*) FROM comment c WHERE c.article_id = a.id AND c.deleted = 0) as commentCount,
+            a.create_time as createTime, a.update_time as updateTime
+        FROM article a
+        LEFT JOIN article_detail ad ON a.id = ad.article_id AND ad.deleted = 0
+        LEFT JOIN user_info ui ON a.user_id = ui.user_id AND ui.deleted = 0
+        LEFT JOIN read_count rc ON rc.document_id = a.id AND rc.document_type = 1
+        WHERE a.id = #{articleId} AND a.deleted = 0
+        LIMIT 1
+    </select>
+
+    <!-- 按关键词搜索文章 -->
+    <select id="queryArticlesBySearchKey" resultMap="ArticleDTOResultMap">
+        SELECT
+            a.id as articleId, a.title, a.short_title as shortTitle, a.summary,
+            IFNULL(a.picture, '') as cover,
+            a.user_id as authorId,
+            IFNULL(ui.user_name, '匿名') as author,
+            IFNULL(ui.user_name, '匿名') as authorName,
+            IFNULL(ui.photo, '') as authorAvatar,
+            a.category_id as categoryId,
+            a.url_slug as slug,
+            CASE a.source WHEN 1 THEN '转载' WHEN 2 THEN '原创' WHEN 3 THEN '翻译' ELSE '' END as sourceName,
+            a.source as sourceType,
+            a.status, a.read_type as readType,
+            IFNULL(rc.cnt, 0) as readCount,
+            (SELECT COUNT(*) FROM user_foot uf WHERE uf.document_id = a.id AND uf.document_type = 1 AND uf.praise_stat = 1) as likeCount,
+            (SELECT COUNT(*) FROM comment c WHERE c.article_id = a.id AND c.deleted = 0) as commentCount,
+            a.create_time as createTime, a.update_time as updateTime
+        FROM article a
+        LEFT JOIN user_info ui ON a.user_id = ui.user_id AND ui.deleted = 0
+        LEFT JOIN read_count rc ON rc.document_id = a.id AND rc.document_type = 1
+        WHERE a.deleted = 0 AND a.status = 1
+        AND (a.title LIKE CONCAT('%', #{key}, '%') OR a.summary LIKE CONCAT('%', #{key}, '%'))
+        ORDER BY a.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countBySearchKey" resultType="long">
+        SELECT COUNT(*)
+        FROM article
+        WHERE deleted = 0 AND status = 1
+        AND (title LIKE CONCAT('%', #{key}, '%') OR summary LIKE CONCAT('%', #{key}, '%'))
+    </select>
+
+    <!-- 按标签查询文章 -->
+    <select id="queryArticlesByTag" resultMap="ArticleDTOResultMap">
+        SELECT
+            a.id as articleId, a.title, a.short_title as shortTitle, a.summary,
+            IFNULL(a.picture, '') as cover,
+            a.user_id as authorId,
+            IFNULL(ui.user_name, '匿名') as author,
+            IFNULL(ui.user_name, '匿名') as authorName,
+            IFNULL(ui.photo, '') as authorAvatar,
+            a.category_id as categoryId,
+            a.url_slug as slug,
+            CASE a.source WHEN 1 THEN '转载' WHEN 2 THEN '原创' WHEN 3 THEN '翻译' ELSE '' END as sourceName,
+            a.source as sourceType,
+            a.status, a.read_type as readType,
+            IFNULL(rc.cnt, 0) as readCount,
+            (SELECT COUNT(*) FROM user_foot uf WHERE uf.document_id = a.id AND uf.document_type = 1 AND uf.praise_stat = 1) as likeCount,
+            (SELECT COUNT(*) FROM comment c WHERE c.article_id = a.id AND c.deleted = 0) as commentCount,
+            a.create_time as createTime, a.update_time as updateTime
+        FROM article a
+        INNER JOIN article_tag at ON a.id = at.article_id AND at.deleted = 0
+        LEFT JOIN user_info ui ON a.user_id = ui.user_id AND ui.deleted = 0
+        LEFT JOIN read_count rc ON rc.document_id = a.id AND rc.document_type = 1
+        WHERE a.deleted = 0 AND a.status = 1 AND at.tag_id = #{tagId}
+        ORDER BY a.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByTag" resultType="long">
+        SELECT COUNT(*)
+        FROM article a
+        INNER JOIN article_tag at ON a.id = at.article_id AND at.deleted = 0
+        WHERE a.deleted = 0 AND a.status = 1 AND at.tag_id = #{tagId}
+    </select>
+
+    <!-- 查询相关文章 -->
+    <select id="queryRelatedArticles" resultMap="ArticleDTOResultMap">
+        SELECT
+            a.id as articleId, a.title, a.short_title as shortTitle, a.summary,
+            IFNULL(a.picture, '') as cover,
+            a.user_id as authorId,
+            IFNULL(ui.user_name, '匿名') as author,
+            IFNULL(ui.user_name, '匿名') as authorName,
+            a.category_id as categoryId,
+            a.url_slug as slug,
+            a.status, a.read_type as readType,
+            IFNULL(rc.cnt, 0) as readCount,
+            a.create_time as createTime, a.update_time as updateTime
+        FROM article a
+        LEFT JOIN user_info ui ON a.user_id = ui.user_id AND ui.deleted = 0
+        LEFT JOIN read_count rc ON rc.document_id = a.id AND rc.document_type = 1
+        WHERE a.deleted = 0 AND a.status = 1 AND a.id != #{articleId} AND a.category_id = (SELECT category_id FROM article WHERE id = #{articleId})
+        ORDER BY a.create_time DESC
+        LIMIT #{size}
+    </select>
+
+    <!-- 按时间范围查询文章（days为天数，-1表示全部） -->
+    <select id="queryArticlesByTime" resultMap="ArticleDTOResultMap">
+        SELECT
+            a.id as articleId, a.title, a.short_title as shortTitle, a.summary,
+            IFNULL(a.picture, '') as cover,
+            a.user_id as authorId,
+            IFNULL(ui.user_name, '匿名') as author,
+            IFNULL(ui.user_name, '匿名') as authorName,
+            IFNULL(ui.photo, '') as authorAvatar,
+            a.category_id as categoryId,
+            a.url_slug as slug,
+            CASE a.source WHEN 1 THEN '转载' WHEN 2 THEN '原创' WHEN 3 THEN '翻译' ELSE '' END as sourceName,
+            a.source as sourceType,
+            a.status, a.read_type as readType,
+            IFNULL(rc.cnt, 0) as readCount,
+            (SELECT COUNT(*) FROM user_foot uf WHERE uf.document_id = a.id AND uf.document_type = 1 AND uf.praise_stat = 1) as likeCount,
+            (SELECT COUNT(*) FROM comment c WHERE c.article_id = a.id AND c.deleted = 0) as commentCount,
+            a.create_time as createTime, a.update_time as updateTime
+        FROM article a
+        LEFT JOIN user_info ui ON a.user_id = ui.user_id AND ui.deleted = 0
+        LEFT JOIN read_count rc ON rc.document_id = a.id AND rc.document_type = 1
+        WHERE a.deleted = 0 AND a.status = 1
+        <if test="days != null and days > 0">
+            AND a.create_time >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        </if>
+        ORDER BY a.topping_stat DESC, a.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <!-- 按时间范围统计文章数量 -->
+    <select id="countTotalByTime" resultType="long">
+        SELECT COUNT(*)
+        FROM article
+        WHERE deleted = 0 AND status = 1
+        <if test="days != null and days > 0">
+            AND create_time >= DATE_SUB(NOW(), INTERVAL #{days} DAY)
+        </if>
+    </select>
+
+    <!-- 统计已发布文章总数（用于站点统计） -->
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM article WHERE deleted = 0 AND status = 1
+    </select>
+
+    <!-- 统计某作者已发布的文章数量 -->
+    <select id="countByAuthorId" resultType="long">
+        SELECT COUNT(*) FROM article WHERE user_id = #{authorId} AND deleted = 0 AND status = 1
+    </select>
+
+</mapper>

@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${vo.archives} + ' - Tech Forum'">全部文章 - Tech Forum</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Header */
+        .header { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .header .container { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #ff8721; }
+        .logo span { color: #333; font-size: 14px; font-weight: normal; margin-left: 8px; }
+        .nav { display: flex; gap: 8px; align-items: center; }
+        .nav a { padding: 8px 16px; border-radius: 4px; font-size: 15px; color: #555; transition: background 0.2s; }
+        .nav a:hover { background: #f0f0f0; color: #ff8721; }
+        .nav a.active { background: #ff8721; color: #fff; }
+
+        /* Search Box */
+        .header-search { display: flex; align-items: center; gap: 8px; }
+        .header-search form { display: flex; align-items: center; background: #f5f7fa; border-radius: 20px; padding: 4px 12px; border: 1px solid #e8e8e8; transition: border-color 0.2s; }
+        .header-search form:focus-within { border-color: #ff8721; }
+        .header-search input { border: none; background: transparent; padding: 6px 8px; font-size: 14px; width: 180px; outline: none; }
+        .header-search button { background: none; border: none; cursor: pointer; padding: 4px; color: #999; transition: color 0.2s; }
+        .header-search button:hover { color: #ff8721; }
+
+        /* User Actions */
+        .user-actions { display: flex; gap: 10px; align-items: center; }
+        .user-actions a { padding: 6px 16px; border-radius: 4px; font-size: 14px; transition: all 0.2s; }
+        .btn-login { color: #ff8721; border: 1px solid #ff8721; }
+        .btn-login:hover { background: #ff8721; color: #fff; }
+        .btn-register { background: #ff8721; color: #fff; }
+        .btn-register:hover { background: #e67318; }
+        .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .user-info img { width: 32px; height: 32px; border-radius: 50%; }
+        .user-info span { font-size: 14px; color: #333; }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 4px; min-width: 120px; padding: 8px 0; z-index: 200; }
+        .dropdown:hover .dropdown-content,
+        .dropdown-content:hover { display: block; }
+        .dropdown-content::before { content: ''; position: absolute; top: -5px; left: 0; right: 0; height: 5px; }
+        .dropdown-content a { display: block; padding: 8px 16px; font-size: 14px; color: #333; }
+        .dropdown-content a:hover { background: #f5f5f5; color: #ff8721; }
+
+        /* Main Layout */
+        .main { max-width: 1200px; margin: 20px auto; padding: 0 20px; display: flex; gap: 20px; flex: 1; }
+        .content { flex: 1; min-width: 0; }
+        .sidebar { width: 280px; flex-shrink: 0; }
+
+        /* Page Title */
+        .page-title { font-size: 24px; margin-bottom: 20px; color: #333; display: flex; align-items: center; gap: 10px; }
+        .page-title::before { content: ''; width: 4px; height: 24px; background: #ff8721; border-radius: 2px; }
+
+        /* Filter Bar */
+        .filter-bar { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 15px; margin-bottom: 20px; }
+        .filter-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: center; }
+        .filter-group { display: flex; align-items: center; gap: 8px; }
+        .filter-label { font-size: 14px; color: #666; font-weight: 500; }
+        .filter-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+        .filter-tag { padding: 4px 12px; background: #f0f2f5; border-radius: 12px; font-size: 13px; color: #666; cursor: pointer; transition: all 0.2s; }
+        .filter-tag:hover { background: #ff8721; color: #fff; }
+        .filter-tag.active { background: #ff8721; color: #fff; }
+        .filter-divider { width: 1px; height: 20px; background: #e8e8e8; }
+        .time-filter { display: flex; gap: 4px; }
+        .time-btn { padding: 4px 10px; background: #f0f2f5; border: none; border-radius: 12px; font-size: 12px; color: #666; cursor: pointer; transition: all 0.2s; }
+        .time-btn:hover, .time-btn.active { background: #ff8721; color: #fff; }
+        .reset-btn { padding: 4px 12px; background: #fff; border: 1px solid #ff8721; border-radius: 12px; font-size: 12px; color: #ff8721; cursor: pointer; transition: all 0.2s; }
+        .reset-btn:hover { background: #ff8721; color: #fff; }
+
+        /* Categories Bar */
+        .categories-bar { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; }
+        .categories { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 0; padding: 0; scrollbar-width: none; -ms-overflow-style: none; }
+        .categories::-webkit-scrollbar { display: none; }
+        .categories a { padding: 12px 20px; font-size: 14px; color: #666; white-space: nowrap; transition: all 0.2s; border-bottom: 2px solid transparent; flex-shrink: 0; }
+        .categories a:hover { color: #ff8721; background: #fff8f5; }
+        .categories a.active { color: #ff8721; border-bottom-color: #ff8721; background: #fff8f5; font-weight: 500; }
+
+        /* Article Cards */
+        .article-card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 15px; padding: 20px; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+        .article-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .article-card h3 { margin-bottom: 8px; font-size: 17px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .article-card h3 a { color: #333; }
+        .article-card h3 a:hover { color: #ff8721; }
+        .article-card .summary { color: #888; font-size: 14px; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .article-meta { display: flex; gap: 15px; color: #aaa; font-size: 12px; align-items: center; flex-wrap: wrap; }
+        .article-meta .author { color: #666; font-weight: 500; }
+        .article-stats { display: flex; gap: 12px; margin-left: auto; }
+
+        /* Pagination */
+        .pagination { display: flex; justify-content: center; gap: 6px; margin: 20px 0; align-items: center; }
+        .pagination a, .pagination span { padding: 8px 14px; border-radius: 4px; border: 1px solid #ddd; color: #666; font-size: 14px; }
+        .pagination a:hover { border-color: #ff8721; color: #ff8721; }
+        .pagination span.current { background: #ff8721; color: #fff; border-color: #ff8721; }
+        .pagination span.disabled { color: #ccc; border-color: #eee; cursor: not-allowed; }
+
+        /* Sidebar */
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 15px; }
+        .card h4 { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #ff8721; display: inline-block; font-size: 16px; }
+        .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag-list a { padding: 4px 12px; background: #f0f2f5; border-radius: 12px; font-size: 13px; color: #666; transition: all 0.2s; }
+        .tag-list a:hover, .tag-list a.active { background: #ff8721; color: #fff; }
+
+        /* Empty */
+        .empty-tip { text-align: center; padding: 60px 20px; color: #999; background: #fff; border-radius: 8px; }
+        .empty-tip h3 { margin-bottom: 10px; color: #666; font-size: 18px; }
+
+        /* Footer */
+        .footer { background: #fff; padding: 20px; text-align: center; color: #999; font-size: 13px; border-top: 1px solid #eee; margin-top: 20px; }
+        .footer a { color: #ff8721; }
+
+        @media (max-width: 768px) {
+            .main { flex-direction: column; }
+            .sidebar { width: 100%; }
+            .header .container { flex-direction: column; align-items: flex-start; }
+            .filter-row { flex-direction: column; align-items: flex-start; }
+        }
+        .msg-icon { position: relative; cursor: pointer; font-size: 18px; padding: 6px 10px; color: #555; transition: color 0.2s; }
+        .msg-icon:hover { color: #ff8721; }
+        .msg-badge { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; background: #ff4d4f; color: #fff; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <a href="/" class="logo">Tech Forum<span>学编程，就上Tech Forum</span></a>
+            <div class="nav">
+                <a href="/">首页</a>
+                <a href="/article/list" class="active">全部文章</a>
+                <a href="/column/list">专栏</a>
+                <a href="/rank/month">排行</a>
+                <a href="/chat">AI聊天</a>
+                <a href="/article/edit" class="btn-write" th:if="${global != null and global.isLogin == true}">&#x272A; 发文章</a>
+            </div>
+            <div class="header-search">
+                <form action="/search" method="get">
+                    <input type="text" name="key" placeholder="搜索文章标题、标签..." required>
+                    <button type="submit">🔍</button>
+                </form>
+            </div>
+            <div class="user-actions">
+                <th:block th:if="${global == null or global.isLogin == false}">
+                    <a href="/login" class="btn-login">登录</a>
+                    <a href="/login" class="btn-register">注册</a>
+                </th:block>
+                <div th:if="${global != null and global.isLogin == true}" style="display:flex;align-items:center;gap:8px;">
+                    <a class="msg-icon" href="/message" title="私信">&#x2709;<span class="msg-badge" id="msgBadge" style="display:none;">0</span></a>
+                    <div class="dropdown">
+                    <div class="user-info">
+                        <img th:src="${global.user != null and global.user.photo != null ? global.user.photo : '/img/default-avatar.png'}" alt="avatar">
+                        <span th:text="${global.user != null ? global.user.userName : '用户'}">用户名</span>
+                    </div>
+                    <div class="dropdown-content">
+                        <a th:href="'/user/home?userId=' + ${global.user != null ? global.user.userId : 0}">个人中心</a>
+                        <a href="/logout">退出登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="content">
+            <!-- 页面标题 -->
+            <h1 class="page-title" th:text="${vo.archives}">全部文章</h1>
+
+            <!-- 分类导航 -->
+            <div class="categories-bar">
+                <div class="categories">
+                    <a th:href="@{/article/list}" th:classappend="${vo.currentCategory == null or vo.currentCategory == ''} ? 'active' : ''">全部</a>
+                    <a th:href="@{/article/list(category='后端')}" th:classappend="${vo.currentCategory == '后端'} ? 'active' : ''">后端</a>
+                    <a th:href="@{/article/list(category='前端')}" th:classappend="${vo.currentCategory == '前端'} ? 'active' : ''">前端</a>
+                    <a th:href="@{/article/list(category='Java')}" th:classappend="${vo.currentCategory == 'Java'} ? 'active' : ''">Java</a>
+                    <a th:href="@{/article/list(category='Python')}" th:classappend="${vo.currentCategory == 'Python'} ? 'active' : ''">Python</a>
+                    <a th:href="@{/article/list(category='数据库')}" th:classappend="${vo.currentCategory == '数据库'} ? 'active' : ''">数据库</a>
+                    <a th:href="@{/article/list(category='Linux')}" th:classappend="${vo.currentCategory == 'Linux'} ? 'active' : ''">Linux</a>
+                    <a th:href="@{/article/list(category='Go语言')}" th:classappend="${vo.currentCategory == 'Go语言'} ? 'active' : ''">Go语言</a>
+                    <a th:href="@{/article/list(category='人工智能')}" th:classappend="${vo.currentCategory == '人工智能'} ? 'active' : ''">人工智能</a>
+                    <a th:href="@{/article/list(category='工具分享')}" th:classappend="${vo.currentCategory == '工具分享'} ? 'active' : ''">工具分享</a>
+                    <a th:href="@{/article/list(category='运维')}" th:classappend="${vo.currentCategory == '运维'} ? 'active' : ''">运维</a>
+                    <a th:href="@{/article/list(category='测试')}" th:classappend="${vo.currentCategory == '测试'} ? 'active' : ''">测试</a>
+                    <a th:href="@{/article/list(category='大数据')}" th:classappend="${vo.currentCategory == '大数据'} ? 'active' : ''">大数据</a>
+                    <a th:href="@{/article/list(category='DevOps')}" th:classappend="${vo.currentCategory == 'DevOps'} ? 'active' : ''">DevOps</a>
+                    <a th:href="@{/article/list(category='云计算')}" th:classappend="${vo.currentCategory == '云计算'} ? 'active' : ''">云计算</a>
+                </div>
+            </div>
+
+            <!-- 时间筛选栏 -->
+            <div class="filter-bar">
+                <div class="filter-row">
+                    <span class="filter-label">时间筛选：</span>
+                    <div class="time-filter">
+                        <a th:href="@{/article/list(category=${vo.currentCategory != null ? vo.currentCategory : ''})}" 
+                           class="time-btn" th:classappend="${timeFilter == null or timeFilter == 0} ? 'active' : ''">全部</a>
+                        <a th:href="@{/article/list(category=${vo.currentCategory != null ? vo.currentCategory : ''},time=1)}" 
+                           class="time-btn" th:classappend="${timeFilter == 1} ? 'active' : ''">今日</a>
+                        <a th:href="@{/article/list(category=${vo.currentCategory != null ? vo.currentCategory : ''},time=7)}" 
+                           class="time-btn" th:classappend="${timeFilter == 7} ? 'active' : ''">近7天</a>
+                        <a th:href="@{/article/list(category=${vo.currentCategory != null ? vo.currentCategory : ''},time=30)}" 
+                           class="time-btn" th:classappend="${timeFilter == 30} ? 'active' : ''">近30天</a>
+                        <a th:href="@{/article/list(category=${vo.currentCategory != null ? vo.currentCategory : ''},time=90)}" 
+                           class="time-btn" th:classappend="${timeFilter == 90} ? 'active' : ''">近3月</a>
+                        <a th:href="@{/article/list(category=${vo.currentCategory != null ? vo.currentCategory : ''},time=365)}" 
+                           class="time-btn" th:classappend="${timeFilter == 365} ? 'active' : ''">近1年</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 文章列表 -->
+            <div th:if="${vo.articles != null and vo.articles.list != null and !vo.articles.list.isEmpty()}">
+                <div th:each="article : ${vo.articles.list}" class="article-card" th:onclick="|window.location.href='/article/detail/' + ${article.articleId}|">
+                    <h3 th:text="${article.title}">文章标题</h3>
+                    <div class="summary" th:text="${article.summary}">文章摘要</div>
+                    <div class="article-meta">
+                        <span class="author" th:text="${article.authorName}">作者</span>
+                        <span th:text="${#temporals.format(article.createTime, 'yyyy-MM-dd HH:mm')}">2024-01-01</span>
+                        <div class="article-stats">
+                            <span th:text="${article.readCount != null ? article.readCount : 0} + ' 阅读'">0 阅读</span>
+                            <span th:text="${article.likeCount != null ? article.likeCount : 0} + ' 赞'">0 赞</span>
+                            <span th:text="${article.commentCount != null ? article.commentCount : 0} + ' 评论'">0 评论</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 分页 -->
+                <div class="pagination" th:if="${vo.articles != null and vo.articles.total != null and vo.articles.total > 0}">
+                    <!-- 上一页 -->
+                    <a th:if="${vo.articles.pageNum > 1}"
+                       th:href="'/article/list?page=' + ${vo.articles.pageNum - 1} + ${vo.currentCategory != null and vo.currentCategory != '' ? '&amp;category=' + vo.currentCategory : ''} + ${vo.currentTag != null and vo.currentTag != '' ? '&amp;tag=' + vo.currentTag : ''} + ${timeFilter != null ? '&amp;time=' + timeFilter : ''}"
+                       >&laquo; 上一页</a>
+                    <span th:if="${vo.articles.pageNum <= 1}" class="disabled">&laquo; 上一页</span>
+
+                    <!-- 第1页（当页码范围不从1开始时显示） -->
+                    <span th:if="${showFirstPage}">
+                        <a th:href="'/article/list?page=1' + ${vo.currentCategory != null and vo.currentCategory != '' ? '&amp;category=' + vo.currentCategory : ''} + ${vo.currentTag != null and vo.currentTag != '' ? '&amp;tag=' + vo.currentTag : ''} + ${timeFilter != null ? '&amp;time=' + timeFilter : ''}"
+                           th:classappend="${1 == vo.articles.pageNum} ? 'current' : ''">1</a>
+                    </span>
+                    <span th:if="${showFirstPage and pageNumbers != null and !pageNumbers.isEmpty() and pageNumbers[0] > 2}" style="padding:8px 6px;">...</span>
+
+                    <!-- 当前页附近的页码 -->
+                    <th:block th:each="i : ${pageNumbers}">
+                        <a th:if="${i != vo.articles.pageNum}"
+                           th:href="'/article/list?page=' + ${i} + ${vo.currentCategory != null and vo.currentCategory != '' ? '&amp;category=' + vo.currentCategory : ''} + ${vo.currentTag != null and vo.currentTag != '' ? '&amp;tag=' + vo.currentTag : ''} + ${timeFilter != null ? '&amp;time=' + timeFilter : ''}"
+                           th:text="${i}">1</a>
+                        <span th:if="${i == vo.articles.pageNum}" class="current" th:text="${i}">1</span>
+                    </th:block>
+
+                    <!-- 最后一页（当页码范围不到最后一页时显示） -->
+                    <span th:if="${showLastPage and pageNumbers != null and !pageNumbers.isEmpty() and vo.articles.totalPages - pageNumbers[pageNumbers.size()-1] > 1}" style="padding:8px 6px;">...</span>
+                    <span th:if="${showLastPage}">
+                        <a th:href="'/article/list?page=' + ${vo.articles.totalPages} + ${vo.currentCategory != null and vo.currentCategory != '' ? '&amp;category=' + vo.currentCategory : ''} + ${vo.currentTag != null and vo.currentTag != '' ? '&amp;tag=' + vo.currentTag : ''} + ${timeFilter != null ? '&amp;time=' + timeFilter : ''}"
+                           th:classappend="${vo.articles.totalPages == vo.articles.pageNum} ? 'current' : ''"
+                           th:text="${vo.articles.totalPages}">1</a>
+                    </span>
+
+                    <!-- 下一页 -->
+                    <a th:if="${vo.articles.pageNum < vo.articles.totalPages}"
+                       th:href="'/article/list?page=' + ${vo.articles.pageNum + 1} + ${vo.currentCategory != null and vo.currentCategory != '' ? '&amp;category=' + vo.currentCategory : ''} + ${vo.currentTag != null and vo.currentTag != '' ? '&amp;tag=' + vo.currentTag : ''} + ${timeFilter != null ? '&amp;time=' + timeFilter : ''}"
+                       >下一页 &raquo;</a>
+                    <span th:if="${vo.articles.pageNum >= vo.articles.totalPages}" class="disabled">下一页 &raquo;</span>
+                </div>
+            </div>
+
+            <div th:if="${vo.articles == null or vo.articles.list == null or vo.articles.list.isEmpty()}" class="empty-tip">
+                <h3>暂无文章</h3>
+                <p>该分类下还没有文章，<a href="/" style="color: #ff8721;">返回首页</a></p>
+            </div>
+        </div>
+
+        <div class="sidebar">
+            <!-- 热门标签 -->
+            <div class="card">
+                <h4>热门标签</h4>
+                <div class="tag-list">
+                    <a href="/article/list?tag=Java">Java</a>
+                    <a href="/article/list?tag=Spring">Spring</a>
+                    <a href="/article/list?tag=MySQL">MySQL</a>
+                    <a href="/article/list?tag=Redis">Redis</a>
+                    <a href="/article/list?tag=Docker">Docker</a>
+                    <a href="/article/list?tag=Vue">Vue</a>
+                    <a href="/article/list?tag=Python">Python</a>
+                    <a href="/article/list?tag=Git">Git</a>
+                    <a href="/article/list?tag=Linux">Linux</a>
+                    <a href="/article/list?tag=AI">人工智能</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div>Copyright &copy; 2026 Tech Forum  - 技术人的开源社区</div>
+    </div>
+<script>
+(function() {
+    function fetchUnread() {
+        fetch('/chat/api/unread').then(function(r) { return r.json(); }).then(function(res) {
+            if (res.status && res.status.code === 200 && res.result !== undefined) {
+                var b = document.getElementById('msgBadge');
+                if (b) { b.textContent = res.result; b.style.display = res.result > 0 ? 'flex' : 'none'; }
+            }
+        }).catch(function() {});
+    }
+    fetchUnread();
+    setInterval(fetchUnread, 30000);
+})();
+</script>
+</body>
+</html>

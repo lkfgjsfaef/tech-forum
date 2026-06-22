@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>500 - 服务器错误</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        .error-container { text-align: center; padding: 40px; }
+        .error-code { font-size: 120px; font-weight: bold; color: #e74c3c; line-height: 1; }
+        .error-title { font-size: 24px; color: #333; margin: 20px 0 10px; }
+        .error-msg { color: #999; font-size: 16px; margin-bottom: 30px; }
+        .error-msg span { color: #e74c3c; }
+        .back-btn { display: inline-block; padding: 12px 32px; background: #ff8721; color: #fff; border-radius: 25px; text-decoration: none; font-size: 16px; transition: background 0.2s; }
+        .back-btn:hover { background: #e67719; }
+    </style>
+</head>
+<body>
+    <div class="error-container">
+        <div class="error-code">500</div>
+        <div class="error-title">服务器内部异常</div>
+        <div class="error-msg">
+            <span th:text="${toast}">服务器内部异常</span>
+        </div>
+        <a href="/" class="back-btn">返回首页</a>
+    </div>
+</body>
+</html>

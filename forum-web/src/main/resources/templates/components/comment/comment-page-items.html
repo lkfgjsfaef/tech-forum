@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <!-- 评论分页列表片段，供Ajax加载使用 -->
+    <div th:each="comment : ${articles != null ? articles.list : comments}" class="comment-item" style="padding: 12px 0; border-bottom: 1px solid #f0f0f0;">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+            <img th:src="${comment.userAvatar != null and !comment.userAvatar.isEmpty() ? comment.userAvatar : '/img/default-avatar.png'}" src="/img/default-avatar.png" style="width: 32px; height: 32px; border-radius: 50%;" alt="">
+            <span style="font-size: 14px; font-weight: 500;" th:text="${comment.userName}">用户</span>
+            <span style="font-size: 12px; color: #999;" th:text="${#dates.format(new java.util.Date(comment.createTime * 1000), 'yyyy-MM-dd HH:mm')}">时间</span>
+        </div>
+        <div style="font-size: 14px; line-height: 1.6; margin-left: 40px;" th:text="${comment.content}">评论内容</div>
+
+        <!-- 子评论 -->
+        <div th:if="${comment.subComments != null and !comment.subComments.isEmpty()}" style="margin-left: 40px; margin-top: 8px; background: #f9f9f9; border-radius: 4px; padding: 8px 12px;">
+            <div th:each="sub : ${comment.subComments}" style="padding: 6px 0; border-bottom: 1px solid #eee;">
+                <span style="font-size: 13px; font-weight: 500; color: #ff8721;" th:text="${sub.userName}">用户</span>
+                <span style="font-size: 13px;" th:text="${sub.content}">回复内容</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

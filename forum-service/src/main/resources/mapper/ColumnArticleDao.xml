@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.article.repository.dao.ColumnArticleDao">
+
+    <select id="findByColumnId" resultType="com.example.forum.service.article.repository.entity.ColumnArticleDO">
+        SELECT id, column_id as columnId, article_id as articleId, section, read_type as readType,
+               create_time as createTime, update_time as updateTime
+        FROM column_article
+        WHERE column_id = #{columnId}
+        ORDER BY section ASC
+    </select>
+
+    <select id="findByColumnIdAndSection" resultType="com.example.forum.service.article.repository.entity.ColumnArticleDO">
+        SELECT id, column_id as columnId, article_id as articleId, section, read_type as readType,
+               create_time as createTime, update_time as updateTime
+        FROM column_article
+        WHERE column_id = #{columnId} AND section = #{section}
+        LIMIT 1
+    </select>
+
+    <select id="findByArticleId" resultType="com.example.forum.service.article.repository.entity.ColumnArticleDO">
+        SELECT id, column_id as columnId, article_id as articleId, section, read_type as readType,
+               create_time as createTime, update_time as updateTime
+        FROM column_article
+        WHERE article_id = #{articleId}
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.example.forum.service.article.repository.entity.ColumnArticleDO">
+        INSERT INTO column_article (column_id, article_id, section, read_type, create_time, update_time)
+        VALUES (#{columnId}, #{articleId}, 0, 0, NOW(), NOW())
+    </insert>
+
+    <select id="getMaxSection" resultType="java.lang.Integer">
+        SELECT COALESCE(MAX(section), 0) FROM column_article WHERE column_id = #{columnId}
+    </select>
+
+    <delete id="deleteByColumnAndArticle">
+        DELETE FROM column_article WHERE column_id = #{columnId} AND article_id = #{articleId}
+    </delete>
+
+    <select id="findByColumnAndArticle" resultType="com.example.forum.service.article.repository.entity.ColumnArticleDO">
+        SELECT id, column_id as columnId, article_id as articleId, section, read_type as readType,
+               create_time as createTime, update_time as updateTime
+        FROM column_article
+        WHERE column_id = #{columnId} AND article_id = #{articleId}
+        LIMIT 1
+    </select>
+
+</mapper>

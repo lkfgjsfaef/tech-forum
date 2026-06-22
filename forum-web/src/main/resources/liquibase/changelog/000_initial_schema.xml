@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-3.5.xsd">
+
+    <property name="now" value="now()" dbms="mysql"/>
+    <property name="autoIncrement" value="true"/>
+
+    <!-- 专栏类型，新增免费开始时间、结束时间 -->
+    <changeSet id="00000000000006" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_221223.sql"/>
+    </changeSet>
+
+    <!-- user_info表添加ip字段 -->
+    <changeSet id="00000000000007" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_221229.sql"/>
+    </changeSet>
+
+    <!-- 配置表新增 extra 字段 -->
+    <changeSet id="00000000000008" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230103.sql"/>
+    </changeSet>
+
+    <!-- 添加用户角色 -->
+    <changeSet id="00000000000014" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230131.sql"/>
+    </changeSet>
+
+    <!-- AI 聊天相关 -->
+    <changeSet id="00000000000016" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230626.sql"/>
+    </changeSet>
+
+    <!-- db 配置 -->
+    <changeSet id="00000000000017" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230628.sql"/>
+    </changeSet>
+
+    <!-- 新增专栏文章的阅读类型 -->
+    <changeSet id="00000000000019" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_230820.sql"/>
+    </changeSet>
+
+    <!-- 修改文章主键 -->
+    <changeSet id="00000000000021" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_231018.sql"/>
+    </changeSet>
+
+    <!-- 新增文章支付记录 -->
+    <changeSet id="000020241030_0" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_241029.sql"/>
+    </changeSet>
+
+    <!-- 新增微信支付对接 -->
+    <changeSet id="000020241204_0" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_241204.sql"/>
+    </changeSet>
+
+    <!-- 专栏分组 -->
+    <changeSet id="000020241217_0" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_241217.sql"/>
+    </changeSet>
+
+    <!-- ai聊天按照对话进行分组 -->
+    <changeSet id="000020250206_0" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_250207.sql"/>
+    </changeSet>
+
+    <!-- 新增短链接数据库 -->
+    <changeSet id="000020250213_0" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_250213.sql"/>
+    </changeSet>
+
+    <!-- 正文划线评论 -->
+    <changeSet id="20251103_1" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_251103.sql"/>
+    </changeSet>
+
+    <changeSet id="20251104_1" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_251104.sql"/>
+    </changeSet>
+
+    <!-- 通知表添加评论ID字段 -->
+    <changeSet id="20251105_2" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_251105_1.sql"/>
+    </changeSet>
+
+    <!-- 添加 url_slug 字段用于SEO友好的URL -->
+    <changeSet id="20251110_1" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_251110.sql"/>
+    </changeSet>
+
+    <!-- 增加 user_info 表的 photo 字段长度 -->
+    <changeSet id="20260121_1" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260121.sql"/>
+    </changeSet>
+
+    <!-- 扩大 global_conf 表 value 字段长度 -->
+    <changeSet id="20260228_1" author="dev">
+        <sqlFile dbms="mysql" endDelimiter=";" encoding="UTF-8" path="liquibase/data/update_schema_260228.sql"/>
+    </changeSet>
+
+</databaseChangeLog>

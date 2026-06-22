@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.article.repository.dao.TagDao">
+
+    <select id="findAll" resultType="com.example.forum.service.article.repository.entity.TagDO">
+        SELECT t.id, t.tag_name as tagName, t.tag_name as tag, t.tag_type as tagType, t.category_id as categoryId,
+               t.status, t.create_time as createTime, t.update_time as updateTime,
+               (SELECT COUNT(*) FROM article_tag at WHERE at.tag_id = t.id AND at.deleted = 0) as articleCount
+        FROM tag t
+        WHERE t.deleted = 0 AND t.status = 1
+        ORDER BY t.id ASC
+    </select>
+
+    <select id="findById" resultType="com.example.forum.service.article.repository.entity.TagDO">
+        SELECT id, tag_name as tagName, tag_name as tag, tag_type as tagType, category_id as categoryId,
+               status, create_time as createTime, update_time as updateTime
+        FROM tag
+        WHERE id = #{id} AND deleted = 0
+        LIMIT 1
+    </select>
+
+    <insert id="insert" parameterType="com.example.forum.service.article.repository.entity.TagDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tag (tag_name, tag_type, category_id, status, deleted)
+        VALUES (#{tagName}, #{tagType}, #{categoryId}, #{status}, 0)
+    </insert>
+
+    <update id="update" parameterType="com.example.forum.service.article.repository.entity.TagDO">
+        UPDATE tag SET tag_name = #{tagName}, tag_type = #{tagType}, category_id = #{categoryId}, status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteById">
+        UPDATE tag SET deleted = 1 WHERE id = #{id}
+    </update>
+
+</mapper>

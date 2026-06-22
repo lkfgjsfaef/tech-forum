@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${vo.column != null} ? ${vo.column.column} + ' - Tech Forum' : '专栏详情 - Tech Forum'">专栏详情 - Tech Forum</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; line-height: 1.8; }
+        a { text-decoration: none; color: #ff8721; transition: color 0.3s; }
+        a:hover { color: #e67719; }
+
+        .header { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .header .container { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #ff8721; }
+        .logo span { color: #333; font-size: 14px; font-weight: normal; margin-left: 8px; }
+        .nav { display: flex; gap: 8px; align-items: center; }
+        .nav a { padding: 8px 16px; border-radius: 4px; font-size: 15px; color: #555; transition: background 0.2s; }
+        .nav a:hover { background: #f0f0f0; color: #ff8721; }
+        .nav a.active { background: #ff8721; color: #fff; }
+
+        .header-search { display: flex; align-items: center; gap: 8px; }
+        .header-search form { display: flex; align-items: center; background: #f5f7fa; border-radius: 20px; padding: 4px 12px; border: 1px solid #e8e8e8; }
+        .header-search input { border: none; background: transparent; padding: 6px 8px; font-size: 14px; width: 180px; outline: none; }
+        .header-search button { background: none; border: none; cursor: pointer; padding: 4px; color: #999; }
+
+        .user-actions { display: flex; gap: 10px; align-items: center; }
+        .user-actions a { padding: 6px 16px; border-radius: 4px; font-size: 14px; transition: all 0.2s; }
+        .btn-write { padding: 6px 18px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff !important; border-radius: 16px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+        .btn-write:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+        .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .user-info img { width: 32px; height: 32px; border-radius: 50%; }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 4px; min-width: 120px; padding: 8px 0; z-index: 200; }
+        .dropdown:hover .dropdown-content, .dropdown-content:hover { display: block; }
+        .dropdown-content::before { content: ''; position: absolute; top: -5px; left: 0; right: 0; height: 5px; }
+        .dropdown-content a { display: block; padding: 8px 16px; font-size: 14px; color: #333; }
+        .dropdown-content a:hover { background: #f5f5f5; color: #ff8721; }
+
+        .main { max-width: 900px; margin: 20px auto; padding: 0 20px; display: flex; gap: 20px; }
+        .content { flex: 1; min-width: 0; }
+        .sidebar { width: 280px; flex-shrink: 0; }
+
+        /* 作者信息卡片 */
+        .author-header {
+            background: linear-gradient(135deg, #ff8721, #ff6b35); border-radius: 8px;
+            padding: 20px 24px; margin-bottom: 20px; display: flex;
+            align-items: center; justify-content: space-between; gap: 20px;
+            box-shadow: 0 4px 12px rgba(255,135,33,0.2);
+        }
+        .author-header-left { display: flex; align-items: center; gap: 16px; flex: 1; }
+        .author-header img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; border: 3px solid rgba(255,255,255,0.3); }
+        .author-header-info .name { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+        .author-header-info .stats { font-size: 13px; color: rgba(255,255,255,0.85); display: flex; gap: 16px; }
+        .follow-btn {
+            padding: 10px 24px; background: #fff; color: #ff8721;
+            border: none; border-radius: 20px; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; flex-shrink: 0;
+        }
+        .follow-btn:hover { background: #fff5f0; transform: scale(1.05); }
+        .follow-btn.followed { background: rgba(255,255,255,0.2); color: #fff; }
+
+        /* 文章头部 */
+        .article-header { background: #fff; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .article-header h1 { font-size: 28px; margin-bottom: 10px; line-height: 1.4; color: #1a1a1a; }
+        .article-meta { display: flex; gap: 20px; color: #999; font-size: 14px; flex-wrap: wrap; }
+
+        /* Markdown 内容 */
+        .article-content { background: #fff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .article-content h1, .article-content h2, .article-content h3 { margin-top: 24px; margin-bottom: 16px; font-weight: 600; line-height: 1.25; color: #1a1a1a; }
+        .article-content h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+        .article-content h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+        .article-content p { margin-bottom: 16px; font-size: 16px; color: #333; }
+        .article-content code { background: #f6f8fa; padding: 2px 6px; border-radius: 3px; font-size: 14px; font-family: monospace; color: #e83e8c; }
+        .article-content pre { background: #1e1e1e; padding: 16px; border-radius: 6px; overflow-x: auto; margin-bottom: 16px; }
+        .article-content pre code { background: none; padding: 0; color: #d4d4d4; }
+        .article-content blockquote { margin: 16px 0; padding: 16px; color: #6a737d; border-left: 4px solid #ff8721; background: #f6f8fa; border-radius: 0 4px 4px 0; }
+        .article-content ul, .article-content ol { padding-left: 2em; margin-bottom: 16px; }
+        .article-content img { max-width: 100%; height: auto; border-radius: 6px; margin: 16px 0; }
+        .article-content table { border-collapse: collapse; width: 100%; margin-bottom: 16px; border: 1px solid #e1e4e8; border-radius: 6px; }
+        .article-content th, .article-content td { padding: 10px 16px; border: 1px solid #e1e4e8; }
+        .article-content th { background: #f6f8fa; font-weight: 600; }
+
+        /* 操作按钮 */
+        .article-actions {
+            background: #fff; border-radius: 8px; padding: 20px; margin-top: 20px;
+            display: flex; justify-content: center; gap: 30px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .action-btn {
+            display: flex; align-items: center; gap: 8px;
+            padding: 12px 24px; border-radius: 24px;
+            background: #f0f2f5; color: #666; cursor: pointer;
+            transition: all 0.3s; border: none; font-size: 14px;
+        }
+        .action-btn:hover { background: #ff8721; color: #fff; transform: scale(1.05); }
+        .action-btn.liked { background: #ff8721; color: #fff; }
+        .action-btn.collected { background: #faad14; color: #fff; }
+
+        /* 翻页导航 */
+        .flip-nav { display: flex; justify-content: space-between; margin-top: 20px; }
+        .flip-nav a { padding: 10px 20px; background: #fff; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: #666; }
+        .flip-nav a:hover { color: #ff8721; box-shadow: 0 3px 8px rgba(0,0,0,0.15); }
+
+        /* 评论区 */
+        .comments-section { background: #fff; border-radius: 8px; padding: 24px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .comments-header { font-size: 18px; font-weight: 600; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #ff8721; display: inline-block; }
+        .comments-header span { color: #999; font-weight: normal; font-size: 14px; margin-left: 8px; }
+        .comment-input-wrapper { margin-bottom: 24px; }
+        .comment-input { width: 100%; padding: 16px; border: 1px solid #e8e8e8; border-radius: 8px; font-size: 15px; resize: vertical; min-height: 100px; font-family: inherit; line-height: 1.6; transition: border-color 0.3s; }
+        .comment-input:focus { outline: none; border-color: #ff8721; }
+        .comment-submit { margin-top: 12px; padding: 10px 24px; background: #ff8721; color: #fff; border: none; border-radius: 20px; font-size: 14px; cursor: pointer; transition: all 0.3s; }
+        .comment-submit:hover { background: #e67318; }
+        .login-tip { text-align: center; padding: 20px; color: #999; background: #f9f9f9; border-radius: 8px; margin-bottom: 20px; }
+        .login-tip a { color: #ff8721; font-weight: 500; }
+        .comment-list { list-style: none; }
+        .comment-item { display: flex; gap: 16px; padding: 16px 0; border-bottom: 1px solid #f0f0f0; }
+        .comment-item:last-child { border-bottom: none; }
+        .comment-avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
+        .comment-body { flex: 1; }
+        .comment-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .comment-author { font-weight: 600; color: #333; font-size: 14px; }
+        .comment-time { color: #999; font-size: 12px; }
+        .comment-content { color: #555; font-size: 15px; line-height: 1.6; margin-bottom: 8px; }
+        .comment-actions { display: flex; gap: 16px; }
+        .comment-action { color: #999; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: color 0.2s; }
+        .comment-action:hover { color: #ff8721; }
+        .empty-comments { text-align: center; padding: 40px 20px; color: #999; }
+
+        /* Toast 提示 */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { padding: 12px 24px; border-radius: 8px; color: #fff; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transform: translateX(100%); transition: all 0.3s ease; max-width: 360px; word-break: break-word; }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast.success { background: #52c41a; }
+        .toast.error { background: #ff4d4f; }
+        .toast.warning { background: #faad14; color: #333; }
+
+        /* 侧边目录 */
+        .toc-card { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 80px; max-height: calc(100vh - 100px); overflow-y: auto; }
+        .toc-card h4 { margin-bottom: 12px; font-size: 16px; border-bottom: 2px solid #ff8721; padding-bottom: 8px; }
+        .toc-item { display: block; padding: 8px 12px; color: #666; font-size: 14px; border-radius: 4px; margin-bottom: 4px; transition: all 0.2s; }
+        .toc-item:hover, .toc-item.active { background: #fff3eb; color: #ff8721; }
+
+        @media (max-width: 768px) {
+            .main { flex-direction: column; }
+            .sidebar { width: 100%; }
+            .toc-card { position: static; max-height: none; }
+        }
+        .msg-icon { position: relative; cursor: pointer; font-size: 18px; padding: 6px 10px; color: #555; transition: color 0.2s; }
+        .msg-icon:hover { color: #ff8721; }
+        .msg-badge { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; background: #ff4d4f; color: #fff; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="header">
+        <div class="container">
+            <a href="/" class="logo">Tech Forum<span>学编程，就上Tech Forum</span></a>
+            <div class="nav">
+                <a href="/">首页</a>
+                <a href="/article/list">全部文章</a>
+                <a href="/column/list" class="active">专栏</a>
+                <a href="/rank/month">排行</a>
+                <a href="/chat">AI聊天</a>
+                <a href="/article/edit" class="btn-write" th:if="${global != null and global.isLogin == true}">&#x272A; 发文章</a>
+            </div>
+            <div class="header-search">
+                <form action="/search" method="get">
+                    <input type="text" name="key" placeholder="搜索文章标题、标签..." required>
+                    <button type="submit">🔍</button>
+                </form>
+            </div>
+            <div class="user-actions">
+                <th:block th:if="${global == null or global.isLogin == false}">
+                    <a href="/login" class="btn-login">登录</a>
+                    <a href="/login" class="btn-register">注册</a>
+                </th:block>
+                <div th:if="${global != null and global.isLogin == true}" style="display:flex;align-items:center;gap:8px;">
+                    <a class="msg-icon" href="/message" title="私信">&#x2709;<span class="msg-badge" id="msgBadge" style="display:none;">0</span></a>
+                    <div class="dropdown">
+                    <div class="user-info">
+                        <img th:src="${global.user != null and global.user.photo != null ? global.user.photo : '/img/default-avatar.png'}" alt="avatar">
+                        <span th:text="${global.user != null ? global.user.userName : '用户'}">用户名</span>
+                    </div>
+                    <div class="dropdown-content">
+                        <a th:href="'/user/home?userId=' + ${global.user != null ? global.user.userId : 0}">个人中心</a>
+                        <a href="/logout">退出登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="content">
+            <!-- 作者信息卡片 -->
+            <div class="author-header" th:if="${vo.author != null}">
+                <div class="author-header-left">
+                    <img th:src="${vo.author.photo != null ? vo.author.photo : '/img/default-avatar.png'}" alt="avatar"
+                         style="cursor:pointer;border-radius:50%;object-fit:cover;"
+                         th:onclick="|goUserHome(${vo.author.userId})|">
+                    <div class="author-header-info">
+                        <div class="name" th:text="${vo.author.userName}" style="cursor:pointer;" th:onclick="|goUserHome(${vo.author.userId})|">作者名</div>
+                        <div class="stats">
+                            <span><strong th:text="${vo.author.articleCount != null ? vo.author.articleCount : 0}">0</strong> 文章</span>
+                            <span><strong th:text="${vo.author.followerCount != null ? vo.author.followerCount : 0}">0</strong> 粉丝</span>
+                        </div>
+                    </div>
+                </div>
+                <button class="follow-btn" id="followBtn"
+                        th:if="${global != null and global.isLogin == true and vo.author != null and vo.author.userId != global.user.userId}"
+                        onclick="toggleFollow()">
+                    <span th:if="${vo.author.followed}">&#x2713; 已关注</span>
+                    <span th:if="${!vo.author.followed}">+ 关注</span>
+                </button>
+            </div>
+
+            <!-- 文章头部 -->
+            <div class="article-header">
+                <h1 th:text="${vo.article != null} ? ${vo.article.title} : ''">文章标题</h1>
+                <div class="article-meta" th:if="${vo.article != null}">
+                    <span th:text="${vo.article.authorName}">作者</span>
+                    <span th:text="${#temporals.format(vo.article.createTime, 'yyyy-MM-dd HH:mm')}">2024-01-01</span>
+                    <span th:text="${vo.article.readCount} + ' 阅读'">0 阅读</span>
+                    <span th:text="${vo.article.commentCount} + ' 评论'">0 评论</span>
+                </div>
+            </div>
+
+            <!-- 文章内容 -->
+            <div class="article-content" th:utext="${vo.article != null} ? ${vo.article.content} : ''">
+                文章内容
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="article-actions" th:if="${vo.article != null}">
+                <button class="action-btn" id="likeBtn" onclick="toggleLike()">
+                    <span id="likeIcon">&#x1F44D;</span> <span id="likeCount" th:text="${vo.article.likeCount}">0</span> 点赞
+                </button>
+                <button class="action-btn" id="collectBtn" onclick="toggleCollect()">
+                    <span id="collectIcon">&#x2B50;</span> <span id="collectCount" th:text="${vo.article.collectCount != null ? vo.article.collectCount : 0}">0</span> 收藏
+                </button>
+                <button class="action-btn" onclick="shareArticle()">
+                    <span>&#x1F4E4;</span> 分享
+                </button>
+            </div>
+
+            <!-- 翻页导航 -->
+            <div class="flip-nav" th:if="${vo.other != null and vo.other.flip != null}">
+                <a th:if="${vo.other.flip.prevShow}" th:href="${vo.other.flip.prevHref}">上一节</a>
+                <span th:unless="${vo.other.flip.prevShow}"></span>
+                <a th:if="${vo.other.flip.nextShow}" th:href="${vo.other.flip.nextHref}">下一节</a>
+                <span th:unless="${vo.other.flip.nextShow}"></span>
+            </div>
+
+            <!-- 评论区 -->
+            <div class="comments-section">
+                <h3 class="comments-header">
+                    评论
+                    <span id="commentTotal" th:text="'(' + ${vo.topCommentTotal != null ? vo.topCommentTotal : 0} + ')'">(0)</span>
+                </h3>
+
+                <div class="login-tip" th:if="${global == null or global.isLogin == false}">
+                    <a href="/login">登录</a> 后才能发表评论
+                </div>
+
+                <div class="comment-input-wrapper" th:if="${global != null and global.isLogin == true}">
+                    <textarea class="comment-input" id="commentInput" placeholder="写下你的评论..."></textarea>
+                    <button class="comment-submit" id="submitBtn" onclick="submitComment()">发表评论</button>
+                </div>
+
+                <ul class="comment-list" id="commentList">
+                    <li class="comment-item" th:each="comment : ${vo.comments}" th:if="${vo.comments != null and !vo.comments.isEmpty()}" th:attr="data-comment-id=${comment.id}">
+                        <img class="comment-avatar" th:src="${comment.userAvatar != null ? comment.userAvatar : '/img/default-avatar.png'}" alt="">
+                        <div class="comment-body">
+                            <div class="comment-meta">
+                                <span class="comment-author" th:text="${comment.userName}">用户名</span>
+                                <span class="comment-time" th:attr="data-timestamp=${comment.createTime}">--</span>
+                            </div>
+                            <div class="comment-content" th:text="${comment.content}">评论内容</div>
+                            <div class="comment-actions">
+                                <span class="comment-action" th:attr="data-comment-id=${comment.id}" onclick="likeComment(this)">&#x1F44D; <span class="like-count" th:text="${comment.likeCount != null ? comment.likeCount : 0}">0</span></span>
+                                <span class="comment-action" onclick="replyComment(this)">回复</span>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="empty-comments" th:if="${vo.comments == null or vo.comments.isEmpty()}">
+                    <p>暂无评论，快来抢沙发吧！</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 侧边栏 -->
+        <div class="sidebar">
+            <div class="toc-card" th:if="${vo.articleList != null}">
+                <h4>目录</h4>
+                <a th:each="item, stat : ${vo.articleList}"
+                   th:href="'/column/' + ${vo.column.columnId} + '/' + ${stat.count}"
+                   th:text="${item.title}"
+                   th:classappend="${stat.count == vo.section} ? 'active' : ''"
+                   class="toc-item">第1节</a>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const articleId = [[${vo.article != null ? vo.article.articleId : 0}]] || 0;
+        const authorId = [[${vo.author != null ? vo.author.userId : 0}]] || 0;
+        const isLoggedIn = [[${global != null and global.isLogin}]] || false;
+        let isLiked = [[${vo.article != null && vo.article.liked}]] || false;
+        let isFollowed = [[${vo.author != null && vo.author.followed}]] || false;
+        let isCollected = [[${vo.article != null && vo.article.collected}]] || false;
+
+        function goUserHome(uid) {
+            if (uid) window.location.href = '/user/home?userId=' + uid;
+        }
+
+        (function() {
+            const btn = document.getElementById('followBtn');
+            if (btn && isFollowed) btn.classList.add('followed');
+            const likeBtn = document.getElementById('likeBtn');
+            if (likeBtn && isLiked) likeBtn.classList.add('liked');
+            const collectBtn = document.getElementById('collectBtn');
+            if (collectBtn && isCollected) collectBtn.classList.add('collected');
+
+            if (isLoggedIn && articleId) {
+                fetch('/article/api/collect/check/' + articleId)
+                    .then(r => r.json())
+                    .then(res => {
+                        if (res.status && res.status.code === 0 && res.result) {
+                            isCollected = res.result.collected;
+                            document.getElementById('collectCount').textContent = res.result.count;
+                            const cBtn = document.getElementById('collectBtn');
+                            if (isCollected) cBtn.classList.add('collected');
+                            else cBtn.classList.remove('collected');
+                        }
+                    });
+            }
+        })();
+
+        function showToast(msg, type, duration) {
+            const c = document.getElementById('toastContainer');
+            const t = document.createElement('div');
+            t.className = 'toast ' + (type || 'info');
+            t.textContent = msg;
+            c.appendChild(t);
+            requestAnimationFrame(() => t.classList.add('show'));
+            setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, duration || 2500);
+        }
+
+        function formatTimestamp(ts) {
+            if (!ts) return '--';
+            const ms = ts > 1e12 ? ts : ts * 1000;
+            const d = new Date(ms);
+            const p = n => String(n).padStart(2, '0');
+            return d.getFullYear() + '-' + p(d.getMonth()+1) + '-' + p(d.getDate()) + ' ' + p(d.getHours()) + ':' + p(d.getMinutes());
+        }
+        document.querySelectorAll('.comment-time[data-timestamp]').forEach(el => {
+            const ts = el.getAttribute('data-timestamp');
+            if (ts) el.textContent = formatTimestamp(parseInt(ts));
+        });
+
+        function toggleLike() {
+            if (!isLoggedIn) { showToast('请先登录', 'warning'); setTimeout(() => location.href='/login', 1500); return; }
+            fetch('/article/api/favor?articleId=' + articleId + '&type=' + (isLiked ? 2 : 0))
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) {
+                        isLiked = !isLiked;
+                        const el = document.getElementById('likeCount');
+                        el.textContent = parseInt(el.textContent) + (isLiked ? 1 : -1);
+                        document.getElementById('likeBtn').classList.toggle('liked', isLiked);
+                        showToast(isLiked ? '点赞成功' : '已取消点赞', 'success');
+                    } else { showToast((res.status&&res.status.msg)||'操作失败','error'); }
+                })
+                .catch(() => showToast('网络错误','error'));
+        }
+
+        function toggleCollect() {
+            if (!isLoggedIn) { showToast('请先登录', 'warning'); setTimeout(() => location.href='/login', 1500); return; }
+            fetch('/article/api/collect/toggle', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({articleId:articleId}) })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) {
+                        isCollected = !isCollected;
+                        document.getElementById('collectCount').textContent = res.result.count;
+                        document.getElementById('collectBtn').classList.toggle('collected', isCollected);
+                        showToast(isCollected ? '收藏成功' : '已取消收藏', 'success');
+                    } else { showToast((res.status&&res.status.msg)||'操作失败','error'); }
+                })
+                .catch(() => showToast('网络错误','error'));
+        }
+
+        function toggleFollow() {
+            if (!isLoggedIn) { showToast('请先登录', 'warning'); setTimeout(() => location.href='/login', 1500); return; }
+            fetch('/user/api/saveUserRelation', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({followUserId:authorId, relationType:isFollowed?2:1}) })
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) {
+                        isFollowed = !isFollowed;
+                        const btn = document.getElementById('followBtn');
+                        btn.classList.toggle('followed', isFollowed);
+                        btn.innerHTML = isFollowed ? '<span>&#x2713; 已关注</span>' : '<span>+ 关注</span>';
+                        const els = document.querySelectorAll('.author-header-info .stats strong');
+                        if (els.length >= 2) { const c = parseInt(els[1].textContent)||0; els[1].textContent = isFollowed ? c+1 : Math.max(0,c-1); }
+                        showToast(isFollowed ? '关注成功' : '已取消关注', 'success');
+                    } else { showToast((res.status&&res.status.msg)||'操作失败','error'); }
+                })
+                .catch(() => showToast('网络错误','error'));
+        }
+
+        function shareArticle() {
+            const url = location.href;
+            if (navigator.clipboard) { navigator.clipboard.writeText(url).then(()=>showToast('链接已复制','success')); }
+            else { const i=document.createElement('input'); i.value=url; document.body.appendChild(i); i.select(); document.execCommand('copy'); document.body.removeChild(i); showToast('链接已复制','success'); }
+        }
+
+        function submitComment() {
+            if (!isLoggedIn) { showToast('请先登录','warning'); setTimeout(()=>location.href='/login',1500); return; }
+            const content = document.getElementById('commentInput').value.trim();
+            if (!content) { showToast('请输入评论内容','warning'); return; }
+            const btn = document.getElementById('submitBtn'); btn.disabled=true; btn.textContent='提交中...';
+            fetch('/comment/api/post', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({articleId:articleId, commentContent:content}) })
+                .then(r=>r.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) { showToast('评论成功','success'); setTimeout(()=>location.reload(),800); }
+                    else { showToast((res.status&&res.status.msg)||'评论失败','error'); }
+                })
+                .catch(()=>{ showToast('网络错误','error'); })
+                .finally(()=>{ btn.disabled=false; btn.textContent='发表评论'; });
+        }
+
+        const commentLikedMap = {};
+        function likeComment(el) {
+            if (!isLoggedIn) { showToast('请先登录','warning'); setTimeout(()=>location.href='/login',1500); return; }
+            const cid = el.getAttribute('data-comment-id'); if (!cid) return;
+            const liked = commentLikedMap[cid] || false;
+            fetch('/comment/api/favor?commentId='+cid+'&type='+(liked?2:0))
+                .then(r=>r.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) {
+                        commentLikedMap[cid] = !liked;
+                        const countEl = el.querySelector('.like-count');
+                        if (countEl) countEl.textContent = Math.max(0, parseInt(countEl.textContent||0)+(liked?-1:1));
+                        showToast(liked?'已取消点赞':'点赞成功','success');
+                    } else { showToast((res.status&&res.status.msg)||'操作失败','error'); }
+                })
+                .catch(()=>showToast('网络错误','error'));
+        }
+
+        function replyComment(el) {
+            if (!isLoggedIn) { showToast('请先登录','warning'); setTimeout(()=>location.href='/login',1500); return; }
+            const name = el.closest('.comment-item').querySelector('.comment-author').textContent;
+            document.getElementById('commentInput').value = '@'+name+' ';
+            document.getElementById('commentInput').focus();
+        }
+    </script>
+<script>
+(function() {
+    function fetchUnread() {
+        fetch('/chat/api/unread').then(function(r) { return r.json(); }).then(function(res) {
+            if (res.status && res.status.code === 200 && res.result !== undefined) {
+                var b = document.getElementById('msgBadge');
+                if (b) { b.textContent = res.result; b.style.display = res.result > 0 ? 'flex' : 'none'; }
+            }
+        }).catch(function() {});
+    }
+    fetchUnread();
+    setInterval(fetchUnread, 30000);
+})();
+</script>
+</body>
+</html>

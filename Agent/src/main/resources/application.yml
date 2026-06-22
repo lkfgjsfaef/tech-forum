@@ -1,0 +1,72 @@
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript
+    min-response-size: 1024
+
+spring:
+  ai:
+    zhipuai:
+      api-key: ${AI_ZHIPU_API_KEY:}
+      chat:
+        options:
+          model: glm-4
+    vectorstore:
+      redis:
+        uri: redis://:${REDIS_PASSWORD:}@localhost:6379
+        index: vector_index
+        prefix: "vector:"
+        initialize-schema: true
+  main:
+    web-application-type: servlet
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude: org.springframework.ai.autoconfigure.vectorstore.redis.RedisVectorStoreAutoConfiguration
+  application:
+    name: ai-chat
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/ai_chat?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:}
+    hikari:
+      max-lifetime: 25200000
+      validation-timeout: 1000
+      connection-test-query: SELECT 1
+  data:
+    redis:
+      host: localhost
+      password: ${REDIS_PASSWORD:}
+      port: 6379
+      database: 3
+      timeout: 5000ms
+
+mybatis-plus:
+  mapper-locations: classpath:mapper/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+
+jwt:
+  secret: ${JWT_SECRET:}
+  expiration: 86400000
+
+ai:
+  default-model: glm-4.7
+  context:
+    max-rounds: 8
+    max-length: 2000
+  summary:
+    enabled: true
+
+logging:
+  level:
+    com.niit.agent: debug

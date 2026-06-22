@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.user.mapper.UserFootMapper">
+
+    <insert id="insert" parameterType="com.example.forum.service.user.entity.UserFootDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO user_foot (user_id, document_id, document_type, document_user_id,
+                               collection_stat, read_stat, comment_stat, praise_stat,
+                               create_time, update_time)
+        VALUES (#{userId}, #{documentId}, #{documentType}, #{documentUserId},
+                #{collectionStat}, #{readStat}, #{commentStat}, #{praiseStat},
+                NOW(), NOW())
+    </insert>
+
+    <update id="update" parameterType="com.example.forum.service.user.entity.UserFootDO">
+        UPDATE user_foot
+        SET collection_stat = #{collectionStat},
+            read_stat       = #{readStat},
+            comment_stat    = #{commentStat},
+            praise_stat     = #{praiseStat},
+            update_time     = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <select id="findByUserIdAndDocument" resultType="com.example.forum.service.user.entity.UserFootDO">
+        SELECT * FROM user_foot
+        WHERE user_id = #{userId}
+          AND document_id = #{documentId}
+          AND document_type = #{documentType}
+        LIMIT 1
+    </select>
+
+    <select id="countPraise" resultType="int">
+        SELECT COUNT(*) FROM user_foot
+        WHERE document_id = #{documentId}
+          AND document_type = #{documentType}
+          AND praise_stat = 1
+    </select>
+
+    <select id="countCollection" resultType="int">
+        SELECT COUNT(*) FROM user_foot
+        WHERE document_id = #{documentId}
+          AND document_type = #{documentType}
+          AND collection_stat = 1
+    </select>
+
+    <select id="countUserPraise" resultType="int">
+        SELECT COUNT(*) FROM user_foot
+        WHERE user_id = #{userId}
+          AND document_type = #{documentType}
+          AND praise_stat = 1
+    </select>
+
+    <select id="countUserCollection" resultType="int">
+        SELECT COUNT(*) FROM user_foot
+        WHERE user_id = #{userId}
+          AND document_type = #{documentType}
+          AND collection_stat = 1
+    </select>
+
+    <select id="countReceivedPraise" resultType="int">
+        SELECT COUNT(*) FROM user_foot
+        WHERE document_user_id = #{documentUserId}
+          AND document_type = #{documentType}
+          AND praise_stat = 1
+    </select>
+
+</mapper>

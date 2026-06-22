@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech Forum - 技术人的社区</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f5f7fa; color: #333; line-height: 1.6; min-height: 100vh; display: flex; flex-direction: column; }
+        a { text-decoration: none; color: inherit; }
+
+        /* Header */
+        .header { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .header .container { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #ff8721; }
+        .logo span { color: #333; font-size: 14px; font-weight: normal; margin-left: 8px; }
+        .nav { display: flex; gap: 8px; align-items: center; }
+        .nav a { padding: 8px 16px; border-radius: 4px; transition: background 0.2s; font-size: 15px; color: #555; }
+        .nav a:hover { background: #f0f0f0; color: #ff8721; }
+        .nav a.active { background: #ff8721; color: #fff; }
+        
+        /* Search Box */
+        .header-search { display: flex; align-items: center; gap: 8px; }
+        .header-search form { display: flex; align-items: center; background: #f5f7fa; border-radius: 20px; padding: 4px 12px; border: 1px solid #e8e8e8; transition: border-color 0.2s; }
+        .header-search form:focus-within { border-color: #ff8721; }
+        .header-search input { border: none; background: transparent; padding: 6px 8px; font-size: 14px; width: 180px; outline: none; }
+        .header-search button { background: none; border: none; cursor: pointer; padding: 4px; color: #999; transition: color 0.2s; }
+        .header-search button:hover { color: #ff8721; }
+
+        /* User Actions */
+        .user-actions { display: flex; gap: 10px; align-items: center; }
+        .user-actions a { padding: 6px 16px; border-radius: 4px; font-size: 14px; transition: all 0.2s; }
+        .btn-login { color: #ff8721; border: 1px solid #ff8721; }
+        .btn-login:hover { background: #ff8721; color: #fff; }
+        .btn-register { background: #ff8721; color: #fff; }
+        .btn-register:hover { background: #e67318; }
+        .btn-write { padding: 6px 18px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff !important; border-radius: 16px; font-size: 13px; font-weight: 500; transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap; }
+        .btn-write:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+        .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .user-info img { width: 32px; height: 32px; border-radius: 50%; }
+        .user-info span { font-size: 14px; color: #333; }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 4px; min-width: 120px; padding: 8px 0; z-index: 200; }
+        .dropdown:hover .dropdown-content,
+        .dropdown-content:hover { display: block; }
+        .dropdown-content::before { content: ''; position: absolute; top: -5px; left: 0; right: 0; height: 5px; }
+        .dropdown-content a { display: block; padding: 8px 16px; font-size: 14px; color: #333; }
+        .dropdown-content a:hover { background: #f5f5f5; color: #ff8721; }
+
+        /* Main Layout */
+        .main { max-width: 1200px; margin: 20px auto; padding: 0 20px; display: flex; gap: 20px; flex: 1; }
+        .content { flex: 1; min-width: 0; }
+        .sidebar { width: 300px; flex-shrink: 0; }
+
+        /* Categories - Enhanced */
+        .categories-bar { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; }
+        .categories { display: flex; flex-wrap: nowrap; overflow-x: auto; gap: 0; padding: 0; scrollbar-width: none; -ms-overflow-style: none; }
+        .categories::-webkit-scrollbar { display: none; }
+        .categories a { padding: 12px 20px; font-size: 14px; color: #666; white-space: nowrap; transition: all 0.2s; border-bottom: 2px solid transparent; flex-shrink: 0; }
+        .categories a:hover { color: #ff8721; background: #fff8f5; }
+        .categories a.active { color: #ff8721; border-bottom-color: #ff8721; background: #fff8f5; font-weight: 500; }
+
+        /* Top Articles Carousel */
+        .top-articles { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .top-article-card { background: linear-gradient(135deg, #ff8721, #ff6b35); border-radius: 8px; padding: 20px; color: #fff; min-height: 100px; display: flex; flex-direction: column; justify-content: flex-end; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+        .top-article-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(255,135,33,0.3); }
+        .top-article-card h3 { color: #fff; font-size: 15px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+
+        /* Section Headers */
+        .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .section-title { font-size: 18px; font-weight: 600; color: #333; display: flex; align-items: center; gap: 8px; }
+        .section-title::before { content: ''; width: 4px; height: 20px; background: #ff8721; border-radius: 2px; }
+        .view-all { font-size: 14px; color: #ff8721; transition: opacity 0.2s; }
+        .view-all:hover { opacity: 0.8; text-decoration: underline; }
+
+        /* Article Cards */
+        .article-card { background: transparent; border-radius: 8px; margin-bottom: 12px; padding: 16px 0; border-bottom: 1px solid #f0f0f0; transition: all 0.2s; cursor: pointer; }
+        .article-card:hover { border-bottom-color: #ff8721; }
+        .article-card:hover h3 { color: #ff8721; }
+        .article-card h3 { font-size: 17px; margin-bottom: 8px; color: #333; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; transition: color 0.2s; }
+        .article-card .summary { color: #888; font-size: 14px; margin-bottom: 12px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .article-meta { display: flex; gap: 15px; color: #aaa; font-size: 12px; align-items: center; flex-wrap: wrap; }
+        .article-meta img { width: 20px; height: 20px; border-radius: 50%; }
+        .article-meta .author { color: #666; font-weight: 500; }
+        .article-source { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 11px; background: #f0f2f5; color: #999; }
+        .article-source.original { background: #fff3e0; color: #ff8721; }
+        .article-stats { display: flex; gap: 12px; margin-left: auto; }
+        .article-stats span { display: flex; align-items: center; gap: 3px; }
+
+        /* Pagination */
+        .pagination { display: flex; justify-content: center; gap: 6px; margin: 20px 0; align-items: center; }
+        .pagination a, .pagination span { padding: 8px 14px; border-radius: 4px; border: 1px solid #ddd; color: #666; font-size: 14px; display: inline-block; }
+        .pagination a:hover { border-color: #ff8721; color: #ff8721; }
+        .pagination span.current { background: #ff8721; color: #fff; border-color: #ff8721; }
+        .pagination span.disabled { color: #ccc; cursor: not-allowed; border-color: #e8e8e8; }
+
+        /* Sidebar Cards */
+        .card { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 15px; }
+        .card h4 { margin-bottom: 12px; padding-bottom: 8px; border-bottom: 2px solid #ff8721; display: inline-block; font-size: 16px; }
+
+        /* Tag Filter */
+        .tag-filter-section { margin-bottom: 15px; }
+        .tag-filter-title { font-size: 14px; color: #666; margin-bottom: 10px; }
+        .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
+        .tag-list a { padding: 4px 12px; background: #f0f2f5; border-radius: 12px; font-size: 13px; color: #666; transition: all 0.2s; }
+        .tag-list a:hover, .tag-list a.active { background: #ff8721; color: #fff; }
+        .tag-list a.clear { background: #e8f4fd; color: #1890ff; }
+
+        /* Rank List */
+        .rank-list { list-style: none; }
+        .rank-item { display: flex; align-items: center; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+        .rank-item:last-child { border-bottom: none; }
+        .rank-num { width: 24px; height: 24px; text-align: center; line-height: 24px; border-radius: 4px; font-size: 12px; font-weight: 600; margin-right: 10px; }
+        .rank-num.top { background: #ff8721; color: #fff; }
+        .rank-num.normal { background: #f0f0f0; color: #666; }
+        .rank-user { flex: 1; display: flex; align-items: center; gap: 10px; }
+        .rank-user img { width: 32px; height: 32px; border-radius: 50%; }
+        .rank-user span { font-size: 14px; color: #333; }
+        .rank-score { font-size: 14px; color: #ff8721; font-weight: 500; }
+
+        /* Rank Tabs */
+        .rank-tabs { display: flex; gap: 4px; margin-bottom: 12px; }
+        .rank-tab { padding: 4px 10px; border-radius: 12px; font-size: 12px; color: #666; background: #f0f2f5; transition: all 0.2s; cursor: pointer; }
+        .rank-tab:hover { background: #fff3e0; color: #ff8721; }
+        .rank-tab.active { background: #ff8721; color: #fff; }
+
+        /* Welcome Info */
+        .welcome-info { padding: 15px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 8px; color: #fff; margin-bottom: 15px; font-size: 14px; line-height: 1.6; }
+
+        /* Stats Section - Enhanced */
+        .stats-section { background: linear-gradient(135deg, #ff8721, #ff6b35); border-radius: 8px; padding: 20px; color: #fff; margin-bottom: 15px; }
+        .stats-section h4 { margin-bottom: 15px; color: #fff; border-bottom-color: rgba(255,255,255,0.3); }
+        .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .stat-item { text-align: center; padding: 10px; background: rgba(255,255,255,0.1); border-radius: 6px; }
+        .stat-value { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .stat-label { font-size: 12px; opacity: 0.9; }
+
+        /* Empty */
+        .empty-tip { text-align: center; padding: 60px 20px; color: #999; background: #fff; border-radius: 8px; }
+        .empty-tip h3 { margin-bottom: 10px; color: #666; font-size: 18px; }
+        .empty-tip p { font-size: 14px; }
+
+        /* Footer */
+        .footer { background: #fff; padding: 20px; text-align: center; color: #999; font-size: 13px; border-top: 1px solid #eee; margin-top: 20px; }
+        .footer a { color: #ff8721; }
+        .footer .links { margin-bottom: 8px; }
+        .footer .links a { margin: 0 10px; }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main { flex-direction: column; }
+            .sidebar { width: 100%; }
+            .nav a { padding: 8px 10px; font-size: 13px; }
+            .top-articles { grid-template-columns: 1fr; }
+            .user-actions a { padding: 5px 10px; font-size: 12px; }
+            .header-search input { width: 120px; }
+        }
+        .msg-icon { position: relative; cursor: pointer; font-size: 18px; padding: 6px 10px; color: #555; transition: color 0.2s; }
+        .msg-icon:hover { color: #ff8721; }
+        .msg-badge { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; background: #ff4d4f; color: #fff; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <a href="/" class="logo">Tech Forum<span>学编程，就上Tech Forum</span></a>
+            <div class="nav">
+                <a href="/" class="active">首页</a>
+                <a href="/article/list">全部文章</a>
+                <a href="/column/list">专栏</a>
+                <a href="/rank/month">排行</a>
+                <a href="/chat">AI聊天</a>
+                <a href="/article/edit" class="btn-write" th:if="${global != null and global.isLogin == true}">&#x272A; 发文章</a>
+            </div>
+            <div class="header-search">
+                <form action="/search" method="get">
+                    <input type="text" name="key" placeholder="搜索文章标题、标签..." required>
+                    <button type="submit">🔍</button>
+                </form>
+            </div>
+            <div class="user-actions">
+                <th:block th:if="${global == null or global.isLogin == false}">
+                    <a href="/login" class="btn-login">登录</a>
+                    <a href="/login" class="btn-register">注册</a>
+                </th:block>
+                <div th:if="${global != null and global.isLogin == true}" style="display:flex;align-items:center;gap:8px;">
+                    <a class="msg-icon" href="/message" title="私信">&#x2709;<span class="msg-badge" id="msgBadge" style="display:none;">0</span></a>
+                    <div class="dropdown">
+                    <div class="user-info">
+                        <img th:src="${global.user != null and global.user.photo != null ? global.user.photo : '/img/default-avatar.png'}" alt="avatar">
+                        <span th:text="${global.user != null ? global.user.userName : '用户'}">用户名</span>
+                    </div>
+                    <div class="dropdown-content">
+                        <a th:href="'/user/home?userId=' + ${global.user != null ? global.user.userId : 0}">个人中心</a>
+                        <a href="/logout">退出登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="main">
+        <div class="content">
+            <!-- 分类导航 - 增强版 -->
+            <div class="categories-bar">
+                <div class="categories">
+                    <a th:href="@{/}" th:classappend="${vo.currentCategory == null or vo.currentCategory == ''} ? 'active' : ''">全部</a>
+                    <a th:href="@{/article/list(category='后端')}" th:classappend="${vo.currentCategory == '后端'} ? 'active' : ''">后端</a>
+                    <a th:href="@{/article/list(category='前端')}" th:classappend="${vo.currentCategory == '前端'} ? 'active' : ''">前端</a>
+                    <a th:href="@{/article/list(category='Java')}" th:classappend="${vo.currentCategory == 'Java'} ? 'active' : ''">Java</a>
+                    <a th:href="@{/article/list(category='Python')}" th:classappend="${vo.currentCategory == 'Python'} ? 'active' : ''">Python</a>
+                    <a th:href="@{/article/list(category='数据库')}" th:classappend="${vo.currentCategory == '数据库'} ? 'active' : ''">数据库</a>
+                    <a th:href="@{/article/list(category='Linux')}" th:classappend="${vo.currentCategory == 'Linux'} ? 'active' : ''">Linux</a>
+                    <a th:href="@{/article/list(category='Go语言')}" th:classappend="${vo.currentCategory == 'Go语言'} ? 'active' : ''">Go语言</a>
+                    <a th:href="@{/article/list(category='人工智能')}" th:classappend="${vo.currentCategory == '人工智能'} ? 'active' : ''">人工智能</a>
+                    <a th:href="@{/article/list(category='工具分享')}" th:classappend="${vo.currentCategory == '工具分享'} ? 'active' : ''">工具分享</a>
+                    <a th:href="@{/article/list(category='运维')}" th:classappend="${vo.currentCategory == '运维'} ? 'active' : ''">运维</a>
+                    <a th:href="@{/article/list(category='测试')}" th:classappend="${vo.currentCategory == '测试'} ? 'active' : ''">测试</a>
+                    <a th:href="@{/article/list(category='大数据')}" th:classappend="${vo.currentCategory == '大数据'} ? 'active' : ''">大数据</a>
+                    <a th:href="@{/article/list(category='DevOps')}" th:classappend="${vo.currentCategory == 'DevOps'} ? 'active' : ''">DevOps</a>
+                    <a th:href="@{/article/list(category='云计算')}" th:classappend="${vo.currentCategory == '云计算'} ? 'active' : ''">云计算</a>
+                </div>
+            </div>
+            
+            <!-- 置顶文章 -->
+            <div class="top-articles" th:if="${vo.topArticles != null and !vo.topArticles.isEmpty()}">
+                <a th:each="article : ${vo.topArticles}" th:href="'/article/detail/' + ${article.articleId}" class="top-article-card">
+                    <h3 th:text="${article.title}">置顶文章标题</h3>
+                </a>
+            </div>
+            
+            <!-- 文章列表 -->
+            <div class="section-header">
+                <h2 class="section-title">
+                    <th:block th:if="${vo.currentCategory != null and vo.currentCategory != ''}" th:text="${vo.currentCategory}">分类</th:block>
+                    <th:block th:if="${vo.currentCategory == null or vo.currentCategory == ''}">最新文章</th:block>
+                </h2>
+                <a href="/article/list" class="view-all">查看全部 &raquo;</a>
+            </div>
+            <div th:if="${vo.articles != null and vo.articles.list != null and !vo.articles.list.isEmpty()}">
+                <a th:each="article : ${vo.articles.list}" th:href="'/article/detail/' + ${article.articleId}" class="article-card">
+                    <h3 th:text="${article.title}">文章标题</h3>
+                    <div class="summary" th:text="${article.summary}">文章摘要内容</div>
+                    <div class="article-meta">
+                        <span class="author" th:text="${article.authorName}">作者</span>
+                        <span class="article-source" th:classappend="${article.sourceType != null and article.sourceType == 2} ? 'original' : ''"
+                              th:text="${article.source}">原创</span>
+                        <span th:text="${#temporals.format(article.createTime, 'yyyy-MM-dd HH:mm')}">2024-01-01</span>
+                        <div class="article-stats">
+                            <span th:text="${article.readCount} + ' 阅读'">0 阅读</span>
+                            <span th:text="${article.likeCount} + ' 赞'">0 赞</span>
+                            <span th:text="${article.commentCount} + ' 评论'">0 评论</span>
+                        </div>
+                    </div>
+                </a>
+                <!-- 分页 -->
+                <div class="pagination" th:if="${vo.articles != null and vo.articles.totalPages != null and vo.articles.totalPages > 0}">
+                    <!-- 上一页 -->
+                    <a th:href="${vo.currentCategory == null or vo.currentCategory == ''} ? '/?page=' + (${vo.articles.pageNum} - 1) : '/article/list?category=' + ${vo.currentCategory} + '&page=' + (${vo.articles.pageNum} - 1)"
+                       th:if="${vo.articles.pageNum != null and vo.articles.pageNum > 1}">&laquo; 上一页</a>
+                    <span class="disabled" th:if="${vo.articles.pageNum == null or vo.articles.pageNum <= 1}">&laquo; 上一页</span>
+
+                    <!-- 页码 -->
+                    <th:block th:if="${vo.articles.totalPages != null and vo.articles.totalPages > 0}">
+                        <!-- 显示前5页或当前页附近 -->
+                        <th:block th:each="i : ${#numbers.sequence(vo.articles.pageNum != null and vo.articles.pageNum > 3 ? vo.articles.pageNum - 2 : 1, vo.articles.pageNum != null ? (vo.articles.pageNum + 2 > vo.articles.totalPages ? vo.articles.totalPages : vo.articles.pageNum + 2) : 1)}">
+                            <a th:if="${i != vo.articles.pageNum}"
+                               th:href="${vo.currentCategory == null or vo.currentCategory == ''} ? '/?page=' + ${i} : '/article/list?category=' + ${vo.currentCategory} + '&page=' + ${i}"
+                               th:text="${i}">1</a>
+                            <span th:if="${i == vo.articles.pageNum}" class="current" th:text="${i}">1</span>
+                        </th:block>
+                    </th:block>
+
+                    <!-- 下一页 -->
+                    <a th:href="${vo.currentCategory == null or vo.currentCategory == ''} ? '/?page=' + (${vo.articles.pageNum} + 1) : '/article/list?category=' + ${vo.currentCategory} + '&page=' + (${vo.articles.pageNum} + 1)"
+                       th:if="${vo.articles.pageNum != null and vo.articles.pageNum < vo.articles.totalPages}">下一页 &raquo;</a>
+                    <span class="disabled" th:if="${vo.articles.pageNum == null or vo.articles.pageNum >= vo.articles.totalPages}">下一页 &raquo;</span>
+                </div>
+
+                <!-- 分页信息 -->
+                <div th:if="${vo.articles != null and vo.articles.total > 0}"
+                     style="text-align:center;padding:10px;color:#999;font-size:12px;">
+                    共 <span th:text="${vo.articles.total}">0</span> 篇文章，
+                    第 <span th:text="${vo.articles.pageNum}">1</span>/<span th:text="${vo.articles.totalPages}">1</span> 页
+                </div>
+            </div>
+            <div th:if="${vo.articles == null or vo.articles.list == null or vo.articles.list.isEmpty()}" class="empty-tip">
+                <h3>暂无文章</h3>
+                <p>该分类下还没有文章，<a href="/" style="color: #ff8721;">返回首页</a></p>
+            </div>
+        </div>
+        <div class="sidebar">
+            <!-- 站点统计 -->
+            <div class="stats-section">
+                <h4>站点统计</h4>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value" th:text="${global != null and global.siteStatisticInfo != null ? global.siteStatisticInfo.articleCount : '0'}">0</div>
+                        <div class="stat-label">文章总数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" th:text="${global != null and global.siteStatisticInfo != null ? global.siteStatisticInfo.userCount : '0'}">0</div>
+                        <div class="stat-label">注册用户</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" th:text="${global != null and global.siteStatisticInfo != null ? global.siteStatisticInfo.commentCount : '0'}">0</div>
+                        <div class="stat-label">评论总数</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value" th:text="${global.todaySiteStatisticInfo != null ? global.todaySiteStatisticInfo.visitCount : '0'}">0</div>
+                        <div class="stat-label">今日访问</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="welcome-info" th:if="${global != null and global.welcomeInfo != null}" th:utext="${global.welcomeInfo}">
+                欢迎来到Tech Forum，一个面向技术人的开源社区！
+            </div>
+            <div class="welcome-info" th:if="${global == null or global.welcomeInfo == null}">
+                欢迎来到<b>Tech Forum</b>，一个面向技术人的开源社区！在这里你可以分享技术文章、参与讨论、探索AI聊天。
+            </div>
+
+            <!-- 热门标签筛选 -->
+            <div class="card tag-filter-section">
+                <h4>热门标签</h4>
+                <p class="tag-filter-title">点击标签筛选文章</p>
+                <div class="tag-list">
+                    <a th:each="item, stat : ${vo.sideBarItems}"
+                       th:if="${item != null and item.title != null and stat.index < 6}"
+                       th:href="'/article/list?tag=' + ${item.title}"
+                       th:text="${item.title}"
+                       th:classappend="${param.tag != null and param.tag[0] == item.title} ? 'active' : ''">标签</a>
+                    <a th:href="'/article/list'" class="clear" th:if="${param.tag != null}">清除筛选</a>
+                </div>
+            </div>
+
+            <!-- 排行榜 -->
+            <div class="card">
+                <h4>活跃用户榜</h4>
+                <!-- 日/周/月/总榜切换 -->
+                <div class="rank-tabs">
+                    <a th:href="@{/(rankType='month')}" th:classappend="${rankType == null or rankType == 'month'} ? 'active' : ''" class="rank-tab">月榜</a>
+                    <a th:href="@{/(rankType='day')}" th:classappend="${rankType == 'day'} ? 'active' : ''" class="rank-tab">日榜</a>
+                    <a th:href="@{/(rankType='week')}" th:classappend="${rankType == 'week'} ? 'active' : ''" class="rank-tab">周榜</a>
+                    <a th:href="@{/(rankType='all')}" th:classappend="${rankType == 'all'} ? 'active' : ''" class="rank-tab">总榜</a>
+                </div>
+                <ul class="rank-list" th:if="${rankItems != null and !rankItems.isEmpty()}">
+                    <li class="rank-item" th:each="item, stat : ${rankItems}" th:if="${stat.index < 5}">
+                        <span class="rank-num" th:classappend="${stat.index < 3} ? 'top' : 'normal'" th:text="${stat.index + 1}">1</span>
+                        <div class="rank-user">
+                            <img th:src="${item.avatar != null and !item.avatar.isEmpty() ? item.avatar : '/img/default-avatar.png'}" alt="">
+                            <span th:text="${item.userName}">用户名</span>
+                        </div>
+                        <span class="rank-score" th:text="${item.count}">0</span>
+                    </li>
+                </ul>
+                <div th:if="${rankItems == null or rankItems.isEmpty()}" style="text-align: center; padding: 20px; color: #999;">
+                    <p>暂无排行数据</p>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <a th:href="'/rank/' + (${rankType != null ? rankType : 'month'})" style="color: #ff8721; font-size: 13px;">查看完整榜单 &raquo;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="footer">
+        <div class="links">
+            <a href="/">首页</a>
+            <a href="/article/list">全部文章</a>
+            <a href="/column/list">专栏</a>
+            <a href="/rank/month">排行榜</a>
+            <a href="/chat">AI聊天</a>
+        </div>
+        <div>Copyright &copy; 2026 Tech Forum  - 技术人的开源社区</div>
+    </div>
+    <script>
+        function switchRankTab(el, type) {
+            event.preventDefault();
+            // 发送 AJAX 请求获取对应榜单数据
+            fetch('/rank/' + type + '?ajax=true')
+                .then(function(res) { return res.json(); })
+                .then(function(data) {
+                    if (data && data.result && data.result.items) {
+                        var list = document.querySelector('.rank-list');
+                        if (!list) return;
+                        list.innerHTML = '';
+                        var items = data.result.items.slice(0, 5);
+                        items.forEach(function(item, idx) {
+                            var li = document.createElement('li');
+                            li.className = 'rank-item';
+                            var numClass = idx < 3 ? 'top' : 'normal';
+                            li.innerHTML = '<span class="rank-num ' + numClass + '">' + (idx + 1) + '</span>' +
+                                '<div class="rank-user">' +
+                                '<img src="' + (item.avatar || '/img/default-avatar.png') + '" alt="">' +
+                                '<span>' + (item.userName || '匿名') + '</span></div>' +
+                                '<span class="rank-score">' + (item.count || 0) + '</span>';
+                            list.appendChild(li);
+                        });
+                        // 更新tab样式
+                        document.querySelectorAll('.rank-tab').forEach(function(tab) { tab.classList.remove('active'); });
+                        el.classList.add('active');
+                    }
+                })
+                .catch(function(err) {
+                    // 降级：直接跳转
+                    window.location.href = '/?rankType=' + type;
+                });
+        }
+    </script>
+<script>
+(function() {
+    function fetchUnread() {
+        fetch('/chat/api/unread').then(function(r) { return r.json(); }).then(function(res) {
+            if (res.status && res.status.code === 200 && res.result !== undefined) {
+                var b = document.getElementById('msgBadge');
+                if (b) { b.textContent = res.result; b.style.display = res.result > 0 ? 'flex' : 'none'; }
+            }
+        }).catch(function() {});
+    }
+    fetchUnread();
+    setInterval(fetchUnread, 30000);
+})();
+</script>
+</body>
+</html>

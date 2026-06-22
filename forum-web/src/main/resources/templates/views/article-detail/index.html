@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${vo.article.title} + ' - Tech Forum'">文章详情 - Tech Forum</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif; background: #f5f7fa; color: #333; line-height: 1.8; }
+        a { text-decoration: none; color: #ff8721; transition: color 0.3s; }
+        a:hover { color: #e67719; }
+        .header { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .header .container { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #ff8721; }
+        .logo span { color: #333; font-size: 14px; font-weight: normal; margin-left: 8px; }
+        .nav { display: flex; gap: 8px; align-items: center; }
+        .nav a { padding: 8px 16px; border-radius: 4px; font-size: 15px; color: #555; transition: background 0.2s; }
+        .nav a:hover { background: #f0f0f0; color: #ff8721; }
+        .nav a.active { background: #ff8721; color: #fff; }
+
+        /* Search Box */
+        .header-search { display: flex; align-items: center; gap: 8px; }
+        .header-search form { display: flex; align-items: center; background: #f5f7fa; border-radius: 20px; padding: 4px 12px; border: 1px solid #e8e8e8; transition: border-color 0.2s; }
+        .header-search form:focus-within { border-color: #ff8721; }
+        .header-search input { border: none; background: transparent; padding: 6px 8px; font-size: 14px; width: 180px; outline: none; }
+        .header-search button { background: none; border: none; cursor: pointer; padding: 4px; color: #999; transition: color 0.2s; }
+        .header-search button:hover { color: #ff8721; }
+
+        /* User Actions */
+        .user-actions { display: flex; gap: 10px; align-items: center; }
+        .user-actions a { padding: 6px 16px; border-radius: 4px; font-size: 14px; transition: all 0.2s; }
+        .btn-write { padding: 6px 18px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff !important; border-radius: 16px; font-size: 13px; font-weight: 500; transition: transform 0.2s, box-shadow 0.2s; white-space: nowrap; }
+        .btn-write:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+        .btn-login:hover { background: #ff8721; color: #fff; }
+        .btn-register { background: #ff8721; color: #fff; }
+        .btn-register:hover { background: #e67318; }
+        .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .user-info img { width: 32px; height: 32px; border-radius: 50%; }
+        .user-info span { font-size: 14px; color: #333; }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 4px; min-width: 120px; padding: 8px 0; z-index: 200; }
+        .dropdown:hover .dropdown-content,
+        .dropdown-content:hover { display: block; }
+        .dropdown-content::before { content: ''; position: absolute; top: -5px; left: 0; right: 0; height: 5px; }
+        .dropdown-content a { display: block; padding: 8px 16px; font-size: 14px; color: #333; }
+        .dropdown-content a:hover { background: #f5f5f5; color: #ff8721; }
+        
+        .main { max-width: 900px; margin: 20px auto; padding: 0 20px; }
+        
+        /* 文章头部 */
+        .article-header { background: #fff; border-radius: 8px; padding: 30px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .article-header h1 { font-size: 28px; margin-bottom: 15px; line-height: 1.4; color: #1a1a1a; }
+        .article-meta { display: flex; gap: 20px; color: #999; font-size: 14px; align-items: center; flex-wrap: wrap; }
+        .article-meta span { display: flex; align-items: center; gap: 4px; }
+        .article-tags { margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap; }
+        .article-tag { background: #f0f2f5; color: #666; padding: 4px 12px; border-radius: 12px; font-size: 12px; }
+        
+        /* 作者信息卡片 - 顶部 */
+        .author-header { 
+            background: linear-gradient(135deg, #ff8721, #ff6b35); border-radius: 8px; 
+            padding: 20px 24px; margin-bottom: 20px; display: flex; 
+            align-items: center; justify-content: space-between; gap: 20px;
+            box-shadow: 0 4px 12px rgba(255,135,33,0.2);
+        }
+        .author-header-left { display: flex; align-items: center; gap: 16px; flex: 1; }
+        .author-header img { 
+            width: 60px; height: 60px; border-radius: 50%; 
+            object-fit: cover; border: 3px solid rgba(255,255,255,0.3);
+        }
+        .author-header-info .name { font-size: 18px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+        .author-header-info .stats { font-size: 13px; color: rgba(255,255,255,0.85); display: flex; gap: 16px; }
+        .author-header-info .stats span { display: flex; align-items: center; gap: 4px; }
+        .follow-btn {
+            padding: 10px 24px; background: #fff; color: #ff8721; 
+            border: none; border-radius: 20px; font-size: 14px; font-weight: 600;
+            cursor: pointer; transition: all 0.3s; flex-shrink: 0;
+        }
+        .follow-btn:hover { background: #fff5f0; transform: scale(1.05); }
+        .follow-btn.followed { background: rgba(255,255,255,0.2); color: #fff; }
+        
+        /* 文章内容 - Markdown样式 */
+        .article-content { background: #fff; border-radius: 8px; padding: 40px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        
+        .article-content h1, .article-content h2, .article-content h3, 
+        .article-content h4, .article-content h5, .article-content h6 { 
+            margin-top: 24px; margin-bottom: 16px; font-weight: 600; line-height: 1.25; color: #1a1a1a; 
+        }
+        .article-content h1 { font-size: 2em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+        .article-content h2 { font-size: 1.5em; border-bottom: 1px solid #eaecef; padding-bottom: 0.3em; }
+        .article-content h3 { font-size: 1.25em; }
+        .article-content h4 { font-size: 1em; }
+        
+        .article-content p { margin-bottom: 16px; font-size: 16px; color: #333; }
+        .article-content a { color: #ff8721; text-decoration: none; border-bottom: 1px solid transparent; }
+        .article-content a:hover { border-bottom-color: #ff8721; }
+        .article-content strong { font-weight: 600; color: #1a1a1a; }
+        .article-content em { font-style: italic; }
+        
+        .article-content ul, .article-content ol { padding-left: 2em; margin-bottom: 16px; }
+        .article-content li { margin-bottom: 8px; }
+        .article-content li > ul, .article-content li > ol { margin-top: 8px; margin-bottom: 0; }
+        
+        .article-content blockquote { 
+            margin: 16px 0; padding: 0 1em; color: #6a737d; 
+            border-left: 4px solid #ff8721; background: #f6f8fa; 
+            padding: 16px; border-radius: 0 4px 4px 0;
+        }
+        .article-content blockquote p { margin: 0; color: #555; }
+        
+        .article-content code { 
+            background: #f6f8fa; padding: 2px 6px; border-radius: 3px; 
+            font-size: 14px; font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            color: #e83e8c;
+        }
+        .article-content pre { 
+            background: #1e1e1e; padding: 16px; border-radius: 6px; 
+            overflow-x: auto; margin-bottom: 16px; border: 1px solid #333;
+        }
+        .article-content pre code { 
+            background: none; padding: 0; color: #d4d4d4; font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .article-content table { 
+            border-collapse: collapse; width: 100%; margin-bottom: 16px; 
+            border: 1px solid #e1e4e8; border-radius: 6px;
+            overflow-x: auto;
+        }
+        .article-content th, .article-content td { 
+            padding: 10px 16px; border: 1px solid #e1e4e8; text-align: left;
+        }
+        .article-content th { background: #f6f8fa; font-weight: 600; }
+        .article-content tr:hover { background: #fafbfc; }
+        
+        .article-content img { 
+            max-width: 100%; height: auto; border-radius: 6px; 
+            margin: 16px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .article-content hr { 
+            height: 1px; background: #e1e4e8; border: none; margin: 24px 0;
+        }
+        
+        /* 文章底部操作 */
+        .article-actions { 
+            background: #fff; border-radius: 8px; padding: 20px; margin-top: 20px;
+            display: flex; justify-content: center; gap: 30px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .action-btn { 
+            display: flex; align-items: center; gap: 8px; 
+            padding: 12px 24px; border-radius: 24px; 
+            background: #f0f2f5; color: #666; cursor: pointer;
+            transition: all 0.3s; border: none; font-size: 14px;
+        }
+        .action-btn:hover { background: #ff8721; color: #fff; transform: scale(1.05); }
+        .action-btn.liked { background: #ff8721; color: #fff; }
+        .action-btn.liked:hover { background: #e67318; }
+        .action-btn.collected { background: #faad14; color: #fff; border-color: #faad14; }
+        
+        /* 评论区 */
+        .comments-section { background: #fff; border-radius: 8px; padding: 24px; margin-top: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .comments-header { font-size: 18px; font-weight: 600; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #ff8721; display: inline-block; }
+        .comments-header span { color: #999; font-weight: normal; font-size: 14px; margin-left: 8px; }
+        
+        /* 评论输入框 */
+        .comment-input-wrapper { margin-bottom: 24px; }
+        .comment-input { 
+            width: 100%; padding: 16px; border: 1px solid #e8e8e8; 
+            border-radius: 8px; font-size: 15px; resize: vertical; 
+            min-height: 100px; font-family: inherit; line-height: 1.6;
+            transition: border-color 0.3s;
+        }
+        .comment-input:focus { outline: none; border-color: #ff8721; }
+        .comment-input::placeholder { color: #bbb; }
+        .comment-submit { 
+            margin-top: 12px; padding: 10px 24px; background: #ff8721; 
+            color: #fff; border: none; border-radius: 20px; 
+            font-size: 14px; cursor: pointer; transition: all 0.3s;
+        }
+        .comment-submit:hover { background: #e67318; }
+        .comment-submit:disabled { background: #ccc; cursor: not-allowed; }
+        .login-tip { text-align: center; padding: 20px; color: #999; background: #f9f9f9; border-radius: 8px; margin-bottom: 20px; }
+        .login-tip a { color: #ff8721; font-weight: 500; }
+        
+        /* 评论列表 */
+        .comment-list { list-style: none; }
+        .comment-item { 
+            display: flex; gap: 16px; padding: 16px 0; 
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .comment-item:last-child { border-bottom: none; }
+        .comment-avatar { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; }
+        .comment-body { flex: 1; }
+        .comment-meta { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .comment-author { font-weight: 600; color: #333; font-size: 14px; }
+        .comment-time { color: #999; font-size: 12px; }
+        .comment-content { color: #555; font-size: 15px; line-height: 1.6; margin-bottom: 8px; }
+        .comment-actions { display: flex; gap: 16px; }
+        .comment-action { 
+            color: #999; font-size: 13px; cursor: pointer; 
+            display: flex; align-items: center; gap: 4px; transition: color 0.2s;
+        }
+        .comment-action:hover { color: #ff8721; }
+        
+        /* 加载更多 */
+        .load-more { text-align: center; padding: 16px; }
+        .load-more button { 
+            padding: 10px 24px; background: #f0f2f5; color: #666; 
+            border: none; border-radius: 20px; cursor: pointer; transition: all 0.3s;
+        }
+        .load-more button:hover { background: #ff8721; color: #fff; }
+        
+        /* 空评论 */
+        .empty-comments { text-align: center; padding: 40px 20px; color: #999; }
+        .empty-comments p { font-size: 15px; }
+
+        /* Toast 提示 */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; gap: 10px; }
+        .toast { 
+            padding: 12px 24px; border-radius: 8px; color: #fff; font-size: 14px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15); opacity: 0; transform: translateX(100%);
+            transition: all 0.3s ease; max-width: 360px; word-break: break-word;
+        }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast.success { background: #52c41a; }
+        .toast.error { background: #ff4d4f; }
+        .toast.warning { background: #faad14; color: #333; }
+        .toast.info { background: #1890ff; }
+        .msg-icon { position: relative; cursor: pointer; font-size: 18px; padding: 6px 10px; color: #555; transition: color 0.2s; }
+        .msg-icon:hover { color: #ff8721; }
+        .msg-badge { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; background: #ff4d4f; color: #fff; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <!-- Toast 容器 -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="header">
+        <div class="container">
+            <a href="/" class="logo">Tech Forum<span>学编程，就上Tech Forum</span></a>
+            <div class="nav">
+                <a href="/">首页</a>
+                <a href="/article/list">全部文章</a>
+                <a href="/column/list">专栏</a>
+                <a href="/rank/month">排行</a>
+                <a href="/chat">AI聊天</a>
+                <a href="/article/edit" class="btn-write" th:if="${global != null and global.isLogin == true}">&#x272A; 发文章</a>
+            </div>
+            <div class="header-search">
+                <form action="/search" method="get">
+                    <input type="text" name="key" placeholder="搜索文章标题、标签..." required>
+                    <button type="submit">🔍</button>
+                </form>
+            </div>
+            <div class="user-actions">
+                <th:block th:if="${global == null or global.isLogin == false}">
+                    <a href="/login" class="btn-login">登录</a>
+                    <a href="/login" class="btn-register">注册</a>
+                </th:block>
+                <div th:if="${global != null and global.isLogin == true}" style="display:flex;align-items:center;gap:8px;">
+                    <a class="msg-icon" href="/message" title="私信">&#x2709;<span class="msg-badge" id="msgBadge" style="display:none;">0</span></a>
+                    <div class="dropdown">
+                    <div class="user-info">
+                        <img th:src="${global.user != null and global.user.photo != null ? global.user.photo : '/img/default-avatar.png'}" alt="avatar">
+                        <span th:text="${global.user != null ? global.user.userName : '用户'}">用户名</span>
+                    </div>
+                    <div class="dropdown-content">
+                        <a th:href="'/user/home?userId=' + ${global.user != null ? global.user.userId : 0}">个人中心</a>
+                        <a href="/logout">退出登录</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main">
+        <!-- 作者信息卡片 - 顶部 -->
+        <div class="author-header" th:if="${vo.author != null}">
+            <div class="author-header-left">
+                <img th:src="${vo.author.photo != null ? vo.author.photo : '/img/default-avatar.png'}"
+                     alt="avatar"
+                     style="cursor:pointer;border-radius:50%;object-fit:cover;"
+                     th:onclick="|goUserHome(${vo.author.userId})|">
+                <div class="author-header-info">
+                    <div class="name" th:text="${vo.author.userName}" style="cursor:pointer;" th:onclick="|goUserHome(${vo.author.userId})|">作者名</div>
+                    <div class="stats">
+                        <span><strong th:text="${vo.author.articleCount != null ? vo.author.articleCount : 0}">0</strong> 文章</span>
+                        <span><strong th:text="${vo.author.followerCount != null ? vo.author.followerCount : 0}">0</strong> 粉丝</span>
+                    </div>
+                </div>
+            </div>
+            <button class="follow-btn" id="followBtn" th:if="${global != null and global.isLogin == true and vo.author != null and vo.author.userId != global.user.userId}" onclick="toggleFollow()">
+                <span th:if="${vo.author.followed}">&#x2713; 已关注</span>
+                <span th:if="${!vo.author.followed}">+ 关注</span>
+            </button>
+        </div>
+
+        <div class="article-header">
+            <h1 th:text="${vo.article.title}">文章标题</h1>
+            <div class="article-meta">
+                <span th:text="${vo.article.authorName}">作者</span>
+                <span th:text="${#temporals.format(vo.article.createTime, 'yyyy-MM-dd HH:mm')}">2024-01-01</span>
+                <span th:text="${vo.article.readCount} + ' 阅读'">0 阅读</span>
+                <span th:text="${vo.article.commentCount} + ' 评论'">0 评论</span>
+            </div>
+            <div class="article-tags" th:if="${vo.article.tags != null && !vo.article.tags.isEmpty()}">
+                <span class="article-tag" th:each="tag : ${vo.article.tags}" th:text="${tag.tagName}">标签</span>
+            </div>
+        </div>
+
+        <!-- 文章内容，Markdown渲染后的HTML -->
+        <div class="article-content" th:utext="${vo.article.content}">
+            文章内容
+        </div>
+
+        <!-- 文章操作按钮 -->
+        <div class="article-actions">
+            <button class="action-btn" id="likeBtn" onclick="toggleLike()">
+                <span id="likeIcon">👍</span> <span id="likeCount" th:text="${vo.article.likeCount}">0</span> 点赞
+            </button>
+            <button class="action-btn" id="collectBtn" onclick="toggleCollect()">
+                <span id="collectIcon">⭐</span> <span id="collectCount" th:text="${vo.article.collectCount != null ? vo.article.collectCount : 0}">0</span> 收藏
+            </button>
+            <button class="action-btn" onclick="shareArticle()">
+                <span>📤</span> 分享
+            </button>
+        </div>
+
+        <!-- 评论区 -->
+        <div class="comments-section">
+            <h3 class="comments-header">
+                评论
+                <span id="commentTotal" th:text="'(' + ${vo.topCommentTotal != null ? vo.topCommentTotal : 0} + ')'">(0)</span>
+            </h3>
+            
+            <!-- 登录提示 -->
+            <div class="login-tip" th:if="${global == null or global.isLogin == false}">
+                <a href="/login">登录</a> 后才能发表评论
+            </div>
+            
+            <!-- 评论输入框 -->
+            <div class="comment-input-wrapper" th:if="${global != null and global.isLogin == true}">
+                <textarea class="comment-input" id="commentInput" placeholder="写下你的评论..."></textarea>
+                <button class="comment-submit" id="submitBtn" onclick="submitComment()">发表评论</button>
+            </div>
+            
+            <!-- 评论列表 -->
+            <ul class="comment-list" id="commentList">
+                <li class="comment-item" th:each="comment : ${vo.comments}" th:if="${vo.comments != null and !vo.comments.isEmpty()}" th:attr="data-comment-id=${comment.id}">
+                    <img class="comment-avatar" th:src="${comment.userAvatar != null ? comment.userAvatar : '/img/default-avatar.png'}" src="https://via.placeholder.com/40" alt="">
+                    <div class="comment-body">
+                        <div class="comment-meta">
+                            <span class="comment-author" th:text="${comment.userName}">用户名</span>
+                            <span class="comment-time" th:attr="data-timestamp=${comment.createTime}">--</span>
+                        </div>
+                        <div class="comment-content" th:text="${comment.content}">评论内容</div>
+                        <div class="comment-actions">
+                            <span class="comment-action" th:attr="data-comment-id=${comment.id}" onclick="likeComment(this)">👍 <span class="like-count" th:text="${comment.likeCount != null ? comment.likeCount : 0}">0</span></span>
+                            <span class="comment-action" onclick="replyComment(this)">回复</span>
+                        </div>
+                    </div>
+                </li>
+            </ul>
+            
+            <!-- 空评论提示 -->
+            <div class="empty-comments" id="emptyComments" th:if="${vo.comments == null or vo.comments.isEmpty()}">
+                <p>暂无评论，快来抢沙发吧！</p>
+            </div>
+            
+            <!-- 加载更多 -->
+            <div class="load-more" th:if="${vo.comments != null and !vo.comments.isEmpty()}">
+                <button onclick="loadMoreComments()">加载更多评论</button>
+            </div>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const articleId = [[${vo.article.articleId}]] || 0;
+        const authorId = [[${vo.author != null ? vo.author.userId : 0}]] || 0;
+        const isLoggedIn = [[${global != null and global.isLogin}]] || false;
+        let isLiked = [[${vo.article != null and vo.article.liked}]] || false;
+        let isFollowed = [[${vo.author != null and vo.author.followed}]] || false;
+        let isCollected = [[${vo.article != null and vo.article.collected}]] || false;
+
+        function goUserHome(uid) {
+            if (uid) window.location.href = '/user/home?userId=' + uid;
+        }
+
+        // 初始化关注按钮样式
+        (function() {
+            const btn = document.getElementById('followBtn');
+            if (btn && isFollowed) {
+                btn.classList.add('followed');
+            }
+        })();
+
+        // 初始化点赞按钮样式
+        (function() {
+            const btn = document.getElementById('likeBtn');
+            if (btn && isLiked) {
+                btn.classList.add('liked');
+            }
+        })();
+
+        // 初始化收藏按钮样式
+        (function() {
+            const btn = document.getElementById('collectBtn');
+            if (btn && isCollected) {
+                btn.classList.add('collected');
+            }
+            fetch('/article/api/collect/check/' + articleId)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0 && res.result) {
+                        isCollected = res.result.collected;
+                        document.getElementById('collectCount').textContent = res.result.count;
+                        const cBtn = document.getElementById('collectBtn');
+                        if (isCollected) cBtn.classList.add('collected');
+                        else cBtn.classList.remove('collected');
+                    }
+                });
+        })();
+
+        // ====== Toast 提示 ======
+        function showToast(message, type = 'info', duration = 2500) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            container.appendChild(toast);
+            requestAnimationFrame(() => {
+                toast.classList.add('show');
+            });
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
+
+        // ====== 时间戳格式化 ======
+        function formatTimestamp(ts) {
+            if (!ts) return '--';
+            // 兼容秒级和毫秒级时间戳
+            const ms = ts > 1e12 ? ts : ts * 1000;
+            const d = new Date(ms);
+            const pad = n => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+
+        // 页面加载时格式化所有评论时间
+        document.querySelectorAll('.comment-time[data-timestamp]').forEach(el => {
+            const ts = el.getAttribute('data-timestamp');
+            if (ts) el.textContent = formatTimestamp(parseInt(ts));
+        });
+
+        // ====== 点赞功能 ======
+        function toggleLike() {
+            if (!isLoggedIn) {
+                showToast('请先登录', 'warning');
+                setTimeout(() => location.href = '/login', 1500);
+                return;
+            }
+            
+            const likeCount = document.getElementById('likeCount');
+            const likeBtn = document.getElementById('likeBtn');
+            const type = isLiked ? 2 : 0; // 0-点赞, 2-取消点赞
+            
+            fetch(`/article/api/favor?articleId=${articleId}&type=${type}`)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) {
+                        isLiked = !isLiked;
+                        const count = parseInt(likeCount.textContent) + (isLiked ? 1 : -1);
+                        likeCount.textContent = count;
+                        likeBtn.classList.toggle('liked', isLiked);
+                        showToast(isLiked ? '点赞成功' : '已取消点赞', 'success');
+                    } else {
+                        showToast((res.status && res.status.msg) || '操作失败', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showToast('网络错误', 'error');
+                });
+        }
+
+        // ====== 收藏功能 ======
+        function toggleCollect() {
+            if (!isLoggedIn) {
+                showToast('请先登录', 'warning');
+                setTimeout(() => location.href = '/login', 1500);
+                return;
+            }
+
+            const collectCount = document.getElementById('collectCount');
+            const collectBtn = document.getElementById('collectBtn');
+
+            fetch('/article/api/collect/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ articleId: articleId })
+            })
+                .then(response => response.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) {
+                        isCollected = !isCollected;
+                        collectCount.textContent = res.result.count;
+                        collectBtn.classList.toggle('collected', isCollected);
+                        showToast(isCollected ? '收藏成功' : '已取消收藏', 'success');
+                    } else {
+                        showToast((res.status && res.status.msg) || '操作失败', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showToast('网络错误', 'error');
+                });
+        }
+
+        // ====== 关注功能 ======
+        function toggleFollow() {
+            if (!isLoggedIn) {
+                showToast('请先登录', 'warning');
+                setTimeout(() => location.href = '/login', 1500);
+                return;
+            }
+            
+            const req = {
+                followUserId: authorId,
+                relationType: isFollowed ? 2 : 1
+            };
+            
+            fetch('/user/api/saveUserRelation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(req)
+            })
+                .then(response => response.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) {
+                        isFollowed = !isFollowed;
+                        const btn = document.getElementById('followBtn');
+                        btn.classList.toggle('followed', isFollowed);
+                        btn.innerHTML = isFollowed ? '<span>✓ 已关注</span>' : '<span>+ 关注</span>';
+                        // 更新粉丝数显示
+                        const followerEls = document.querySelectorAll('.author-header-info .stats strong');
+                        if (followerEls.length >= 2) {
+                            const currentCount = parseInt(followerEls[1].textContent) || 0;
+                            followerEls[1].textContent = isFollowed ? currentCount + 1 : Math.max(0, currentCount - 1);
+                        }
+                        showToast(isFollowed ? '关注成功' : '已取消关注', 'success');
+                    } else {
+                        showToast((res.status && res.status.msg) || '操作失败', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showToast('网络错误', 'error');
+                });
+        }
+
+        // ====== 分享功能 ======
+        function shareArticle() {
+            const url = window.location.href;
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(url).then(() => {
+                    showToast('链接已复制到剪贴板', 'success');
+                });
+            } else {
+                const input = document.createElement('input');
+                input.value = url;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+                showToast('链接已复制到剪贴板', 'success');
+            }
+        }
+
+        // ====== 提交评论 ======
+        function submitComment() {
+            if (!isLoggedIn) {
+                showToast('请先登录', 'warning');
+                setTimeout(() => location.href = '/login', 1500);
+                return;
+            }
+            
+            const content = document.getElementById('commentInput').value.trim();
+            if (!content) {
+                showToast('请输入评论内容', 'warning');
+                return;
+            }
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = '提交中...';
+            
+            fetch('/comment/api/post', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    articleId: articleId,
+                    commentContent: content
+                })
+            })
+                .then(response => response.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) {
+                        showToast('评论成功', 'success');
+                        // 刷新页面显示新评论
+                        setTimeout(() => location.reload(), 800);
+                    } else {
+                        showToast((res.status && res.status.msg) || '评论失败', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showToast('网络错误', 'error');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '发表评论';
+                });
+        }
+
+        // ====== 评论点赞（切换式） ======
+        const commentLikedMap = {}; // 记录每个评论的点赞状态
+        function likeComment(element) {
+            if (!isLoggedIn) {
+                showToast('请先登录', 'warning');
+                setTimeout(() => location.href = '/login', 1500);
+                return;
+            }
+            const commentId = element.getAttribute('data-comment-id');
+            if (!commentId) return;
+            
+            // 切换状态：已点赞则取消，未点赞则添加
+            const isLiked = commentLikedMap[commentId] || false;
+            const newType = isLiked ? 2 : 0; // 0=点赞(LIKE), 2=取消点赞(CANCEL_LIKE)
+            
+            fetch(`/comment/api/favor?commentId=${commentId}&type=${newType}`)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0) {
+                        // 切换状态和样式
+                        commentLikedMap[commentId] = !isLiked;
+                        element.classList.toggle('liked', !isLiked);
+                        
+                        // 更新计数
+                        const countEl = element.querySelector('.like-count');
+                        if (countEl) {
+                            const count = parseInt(countEl.textContent || '0') + (isLiked ? -1 : 1);
+                            countEl.textContent = Math.max(0, count);
+                        }
+                        showToast(isLiked ? '已取消点赞' : '点赞成功', 'success');
+                    } else {
+                        showToast((res.status && res.status.msg) || '操作失败', 'error');
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    showToast('网络错误', 'error');
+                });
+        }
+
+        // ====== 回复评论 ======
+        function replyComment(element) {
+            if (!isLoggedIn) {
+                showToast('请先登录', 'warning');
+                setTimeout(() => location.href = '/login', 1500);
+                return;
+            }
+            const authorName = element.closest('.comment-item').querySelector('.comment-author').textContent;
+            document.getElementById('commentInput').value = `@${authorName} `;
+            document.getElementById('commentInput').focus();
+        }
+
+        // ====== 加载更多评论 ======
+        let commentPage = 1;
+        function loadMoreComments() {
+            commentPage++;
+            fetch(`/comment/api/listPageHtml?articleId=${articleId}&pageNum=${commentPage}&pageSize=10`)
+                .then(response => response.json())
+                .then(res => {
+                    if (res.status && res.status.code === 0 && res.result) {
+                        const data = res.result;
+                        if (data.html) {
+                            const commentList = document.getElementById('commentList');
+                            commentList.insertAdjacentHTML('beforeend', data.html);
+                            // 格式化新加载的评论时间
+                            commentList.querySelectorAll('.comment-time[data-timestamp]:not([data-formatted])').forEach(el => {
+                                const ts = el.getAttribute('data-timestamp');
+                                if (ts) el.textContent = formatTimestamp(parseInt(ts));
+                                el.setAttribute('data-formatted', '1');
+                            });
+                        }
+                        if (!data.hasMore) {
+                            const loadMoreBtn = document.querySelector('.load-more button');
+                            if (loadMoreBtn) {
+                                loadMoreBtn.textContent = '没有更多评论了';
+                                loadMoreBtn.disabled = true;
+                            }
+                        }
+                    }
+                })
+                .catch(err => console.error(err));
+        }
+    </script>
+<script>
+(function() {
+    function fetchUnread() {
+        fetch('/chat/api/unread').then(function(r) { return r.json(); }).then(function(res) {
+            if (res.status && res.status.code === 200 && res.result !== undefined) {
+                var b = document.getElementById('msgBadge');
+                if (b) { b.textContent = res.result; b.style.display = res.result > 0 ? 'flex' : 'none'; }
+            }
+        }).catch(function() {});
+    }
+    fetchUnread();
+    setInterval(fetchUnread, 30000);
+})();
+</script>
+</body>
+</html>

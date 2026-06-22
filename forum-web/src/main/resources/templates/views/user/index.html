@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${vo.userHome.userName} + ' - Tech Forum'">用户中心 - Tech Forum</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; color: #333; min-height: 100vh; display: flex; flex-direction: column; }
+        a { text-decoration: none; color: inherit; }
+
+        .header { background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .header .container { max-width: 1200px; margin: 0 auto; padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+        .logo { font-size: 24px; font-weight: bold; color: #ff8721; }
+        .logo span { color: #333; font-size: 14px; font-weight: normal; margin-left: 8px; }
+        .nav { display: flex; gap: 8px; align-items: center; }
+        .nav a { padding: 8px 16px; border-radius: 4px; font-size: 15px; color: #555; transition: all 0.2s; }
+        .nav a:hover { background: #f0f0f0; color: #ff8721; }
+        .nav a.active { background: #ff8721; color: #fff; }
+
+        .header-search { display: flex; align-items: center; gap: 8px; }
+        .header-search form { display: flex; align-items: center; background: #f5f7fa; border-radius: 20px; padding: 4px 12px; border: 1px solid #e8e8e8; }
+        .header-search input { border: none; background: transparent; padding: 6px 8px; font-size: 14px; width: 160px; outline: none; }
+        .header-search button { background: none; border: none; cursor: pointer; padding: 4px; color: #999; }
+
+        .btn-write { padding: 6px 18px; background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff !important; border-radius: 16px; font-size: 13px; font-weight: 500; white-space: nowrap; }
+        .btn-write:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+
+        .user-actions { display: flex; gap: 10px; align-items: center; }
+        .user-actions a { padding: 6px 16px; border-radius: 4px; font-size: 14px; transition: all 0.2s; }
+        .user-info { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .user-info img { width: 32px; height: 32px; border-radius: 50%; }
+        .dropdown { position: relative; }
+        .dropdown-content { display: none; position: absolute; right: 0; top: 100%; background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.15); border-radius: 4px; min-width: 140px; padding: 8px 0; z-index: 200; }
+        .dropdown:hover .dropdown-content, .dropdown-content:hover { display: block; }
+        .dropdown-content::before { content: ''; position: absolute; top: -5px; left: 0; right: 0; height: 5px; }
+        .dropdown-content a { display: block; padding: 8px 16px; font-size: 14px; color: #333; }
+        .dropdown-content a:hover { background: #f5f5f5; color: #ff8721; }
+
+        /* 消息图标 */
+        .msg-icon { position: relative; cursor: pointer; font-size: 18px; padding: 6px 10px; color: #555; transition: color 0.2s; }
+        .msg-icon:hover { color: #ff8721; }
+        .msg-badge { position: absolute; top: 2px; right: 2px; width: 16px; height: 16px; background: #ff4d4f; color: #fff; border-radius: 50%; font-size: 10px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+
+        .main { max-width: 900px; margin: 20px auto; padding: 0 20px; }
+
+        /* 用户卡片 */
+        .user-card { background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 12px; padding: 35px; box-shadow: 0 4px 20px rgba(102,126,234,0.25); margin-bottom: 20px; color: #fff; position: relative; overflow: hidden; }
+        .user-card::before { content: ''; position: absolute; top: -50%; right: -50%; width: 200%; height: 200%; background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%); pointer-events: none; }
+        .user-card-inner { display: flex; gap: 24px; align-items: center; position: relative; z-index: 1; }
+        .user-avatar-wrap { position: relative; cursor: pointer; }
+        .user-card img { width: 90px; height: 90px; border-radius: 50%; border: 3px solid rgba(255,255,255,0.3); object-fit: cover; }
+        .user-info-text { flex: 1; }
+        .user-info-text .name-row { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
+        .user-info-text .name { font-size: 22px; font-weight: bold; }
+        .edit-btn { padding: 4px 14px; background: rgba(255,255,255,0.2); color: #fff; border: 1px solid rgba(255,255,255,0.35); border-radius: 14px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .edit-btn:hover { background: rgba(255,255,255,0.3); }
+        .info { opacity: 0.9; font-size: 14px; margin-bottom: 8px; }
+        .user-stats { display: flex; gap: 16px; flex-wrap: wrap; }
+        .stat { text-align: center; min-width: 60px; padding: 8px 12px; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .stat:hover { background: rgba(255,255,255,0.2); }
+        .stat-num { font-size: 20px; font-weight: bold; display: block; }
+        .stat-label { font-size: 11px; opacity: 0.75; margin-top: 2px; }
+
+        /* 操作栏 */
+        .action-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+        .action-btn { flex: 1; padding: 12px; background: #fff; border: 1px solid #e8e8e8; border-radius: 8px; font-size: 14px; color: #555; cursor: pointer; transition: all 0.2s; text-align: center; font-weight: 500; text-decoration: none; }
+        .action-btn:hover { border-color: #ff8721; color: #ff8721; background: #fff8f5; }
+        .action-btn.primary { background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff; border: none; }
+        .action-btn.primary:hover { box-shadow: 0 4px 12px rgba(255,135,33,0.3); }
+
+        /* Tab导航 */
+        .tab-nav { display: flex; gap: 0; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px; overflow: hidden; }
+        .tab-nav a { padding: 14px 28px; font-size: 15px; color: #555; transition: all 0.2s; border-bottom: 2px solid transparent; }
+        .tab-nav a:hover { color: #ff8721; }
+        .tab-nav a.active { color: #ff8721; border-bottom-color: #ff8721; background: #fff8f5; font-weight: 600; }
+
+        /* 文章列表 */
+        .article-list { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .article-item { padding: 18px 22px; border-bottom: 1px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; transition: background 0.2s; }
+        .article-item:last-child { border-bottom: none; }
+        .article-item:hover { background: #fafafa; }
+        .article-item-left h3 { margin-bottom: 6px; max-width: 450px; }
+        .article-item-left h3 a { color: #333; font-size: 16px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+        .article-item-left h3 a:hover { color: #ff8721; }
+        .article-item-meta { color: #999; font-size: 13px; display: flex; gap: 15px; }
+        .article-item-right { text-align: right; color: #bbb; font-size: 13px; }
+
+        /* 用户列表（关注/粉丝） */
+        .user-list { background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .user-list-item { display: flex; align-items: center; gap: 16px; padding: 16px 22px; border-bottom: 1px solid #f0f0f0; transition: background 0.2s; }
+        .user-list-item:last-child { border-bottom: none; }
+        .user-list-item:hover { background: #fafafa; }
+        .user-list-item .avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; cursor: pointer; flex-shrink: 0; }
+        .user-list-item .user-info { flex: 1; min-width: 0; }
+        .user-list-item .user-name { font-size: 15px; font-weight: 600; color: #333; cursor: pointer; }
+        .user-list-item .user-name:hover { color: #ff8721; }
+        .user-list-item .user-desc { font-size: 12px; color: #999; margin-top: 2px; }
+        .user-list-item .actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .follow-action-btn { padding: 6px 18px; border-radius: 16px; font-size: 13px; cursor: pointer; border: 1px solid #ff8721; background: #fff; color: #ff8721; transition: all 0.2s; white-space: nowrap; }
+        .follow-action-btn:hover { background: #fff8f0; }
+        .follow-action-btn.followed { background: #ff8721; color: #fff; }
+        .follow-action-btn.followed:hover { background: #e67318; }
+        .msg-action-btn { padding: 6px 14px; border-radius: 16px; font-size: 13px; cursor: pointer; border: 1px solid #ddd; background: #fff; color: #666; transition: all 0.2s; white-space: nowrap; }
+        .msg-action-btn:hover { border-color: #ff8721; color: #ff8721; }
+
+        .empty-tip { text-align: center; padding: 60px 20px; color: #999; background: #fff; border-radius: 8px; }
+
+        /* 编辑资料弹窗 */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.45); z-index: 9999; justify-content: center; align-items: center; }
+        .modal-overlay.show { display: flex; }
+        .modal { background: #fff; border-radius: 12px; padding: 30px; width: 480px; max-width: 90vw; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .modal h2 { font-size: 20px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px solid #f0f0f0; color: #333; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 6px; font-size: 14px; font-weight: 500; color: #555; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; outline: none; resize: vertical; }
+        .form-group input:focus, .form-group textarea:focus { border-color: #ff8721; }
+        .form-group textarea { min-height: 80px; }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+        .modal-actions button { padding: 10px 24px; border-radius: 6px; font-size: 14px; cursor: pointer; border: 1px solid; }
+        .btn-cancel { background: #fff; color: #666; border-color: #ddd; }
+        .btn-confirm { background: linear-gradient(135deg, #ff8721, #ff6b35); color: #fff; border: none; }
+
+        @media (max-width: 768px) {
+            .header .container { flex-direction: column; }
+            .user-card-inner { flex-direction: column; text-align: center; }
+            .user-stats { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <a href="/" class="logo">Tech Forum<span>学编程，就上Tech Forum</span></a>
+            <div class="nav">
+                <a href="/">首页</a>
+                <a href="/article/list">全部文章</a>
+                <a href="/column/list">专栏</a>
+                <a href="/rank/month">排行</a>
+                <a href="/chat">AI聊天</a>
+                <a href="/article/edit" class="btn-write" th:if="${isLoggedIn}">&#x272A; 发文章</a>
+            </div>
+            <div class="header-search">
+                <form action="/search" method="get">
+                    <input type="text" name="key" placeholder="搜索文章..." required>
+                    <button>&#128269;</button>
+                </form>
+            </div>
+            <div class="user-actions">
+                <th:block th:if="${global == null or global.isLogin == false}">
+                    <a href="/login" style="color:#ff8721;border:1px solid #ff8721;">登录</a>
+                    <a href="/login" style="background:#ff8721;color:#fff;">注册</a>
+                </th:block>
+                <div th:if="${isLoggedIn}" style="display:flex;align-items:center;gap:8px;">
+                    <!-- 私信图标 -->
+                    <a class="msg-icon" href="/message" title="私信">&#x2709;
+                        <span class="msg-badge" id="msgBadge" style="display:none;">0</span>
+                    </a>
+                    <div class="dropdown">
+                        <div class="user-info">
+                            <img th:src="${global.user != null and global.user.photo != null ? global.user.photo : '/img/default-avatar.png'}" alt="">
+                            <span th:text="${global.user != null ? global.user.userName : '用户'}">用户名</span>
+                        </div>
+                        <div class="dropdown-content">
+                            <a th:href="'/user/home?userId=' + ${global.user != null ? global.user.userId : 0}">个人中心</a>
+                            <a href="/article/edit">&#x270E; 写文章</a>
+                            <a href="/logout">退出登录</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="main" th:if="${vo.userHome != null}">
+        <!-- 用户卡片 -->
+        <div class="user-card">
+            <div class="user-card-inner">
+                <div class="user-avatar-wrap" th:onclick="'goUserProfile(' + ${vo.userHome.userId} + ')'">
+                    <img th:src="${vo.userHome.photo != null and !vo.userHome.photo.isEmpty() ? vo.userHome.photo : '/img/default-avatar.png'}" alt="" onerror="this.src='/img/default-avatar.png'">
+                </div>
+                <div class="user-info-text">
+                    <div class="name-row">
+                        <span class="name" th:text="${vo.userHome.userName}">用户名</span>
+                        <button class="edit-btn" onclick="openEditModal()" th:if="${isOwner}">&#x270E; 编辑资料</button>
+                        <button id="profileFollowBtn" class="edit-btn"
+                                th:if="${!isOwner}"
+                                th:classappend="${isFollowed} ? 'edit-btn-followed' : ''"
+                                th:text="${isFollowed} ? '已关注' : '+ 关注'"
+                                onclick="toggleProfileFollow()"></button>
+                        <button class="edit-btn" id="profileMsgBtn"
+                                th:if="${!isOwner}"
+                                onclick="openMessage()">&#x2709; 私信</button>
+                    </div>
+                    <div class="info" th:text="${vo.userHome.profile != null and vo.userHome.profile != '' ? vo.userHome.profile : '这个人很懒，什么都没写'}">这个人很懒，什么都没写</div>
+                    <div class="user-stats">
+                        <div class="stat" th:onclick="'switchTab(\'article\')'">
+                            <span class="stat-num" th:text="${vo.userHome.articleCount != null ? vo.userHome.articleCount : 0}">0</span>
+                            <span class="stat-label">文章</span>
+                        </div>
+                        <div class="stat" th:onclick="'switchTab(\'follow\')'" th:if="${isOwner}">
+                            <span class="stat-num" th:text="${vo.userHome.followCount != null ? vo.userHome.followCount : 0}">0</span>
+                            <span class="stat-label">关注</span>
+                        </div>
+                        <div class="stat" th:onclick="'switchTab(\'fans\')'" th:if="${isOwner}">
+                            <span class="stat-num" th:text="${vo.userHome.fansCount != null ? vo.userHome.fansCount : 0}">0</span>
+                            <span class="stat-label">粉丝</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-num" th:text="${vo.userHome.likeCount != null ? vo.userHome.likeCount : 0}">0</span>
+                            <span class="stat-label">获赞</span>
+                        </div>
+                        <div class="stat" th:onclick="'switchTab(\'collect\')'">
+                            <span class="stat-num" th:text="${vo.userHome.collectCount != null ? vo.userHome.collectCount : 0}">0</span>
+                            <span class="stat-label">收藏</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 操作栏（仅自己可见） -->
+        <div class="action-bar" th:if="${isOwner}">
+            <a href="/article/edit" class="action-btn primary">&#x270E; 写文章</a>
+        </div>
+
+        <!-- Tab导航 -->
+        <div class="tab-nav">
+            <a th:each="tag : ${vo.homeSelectTags}"
+               th:if="${tag.tagName != 'follow' and tag.tagName != 'fans'}"
+               th:href="'/user/' + ${vo.userHome.userId} + '?homeSelectType=' + ${tag.tagName}"
+               th:text="${tag.selectDesc}"
+               th:classappend="${tag.selected} ? 'active' : ''">文章</a>
+            <a th:each="tag : ${vo.homeSelectTags}"
+               th:if="${(tag.tagName != null and (tag.tagName == 'follow' or tag.tagName == 'fans')) and isOwner}"
+               th:href="'/user/' + ${vo.userHome.userId} + '?homeSelectType=' + ${tag.tagName}"
+               th:text="${tag.selectDesc}"
+               th:classappend="${tag.selected} ? 'active' : ''">关注</a>
+        </div>
+
+        <!-- 文章/收藏列表 -->
+        <div class="article-list" th:if="${isArticleTab or isCollectTab}" th:with="hasArticles=${vo.homeSelectList != null ? (vo.homeSelectList.list != null ? !vo.homeSelectList.list.isEmpty() : false) : false}">
+            <div th:if="${hasArticles}" th:each="article : ${vo.homeSelectList.list}" class="article-item">
+                <div class="article-item-left">
+                    <h3><a th:href="'/article/detail/' + ${article.articleId}" th:text="${article.title}">文章标题</a></h3>
+                    <div class="article-item-meta">
+                        <span th:text="${#temporals.format(article.createTime, 'yyyy-MM-dd')}">2024-01-01</span>
+                        <span th:text="${article.readCount != null ? article.readCount : 0} + ' 阅读'">0 阅读</span>
+                    </div>
+                </div>
+                <div class="article-item-right" th:text="${#temporals.format(article.createTime, 'yyyy/MM/dd')}"></div>
+            </div>
+            <!-- 文章/收藏空状态 -->
+            <div th:if="${!hasArticles}" class="empty-tip">
+                <p style="font-size:48px;margin-bottom:12px;">&#x1F4CB;</p>
+                <h3 style="margin-bottom:6px;color:#666;" th:text="${isCollectTab} ? '还没有收藏任何文章' : '暂无内容'">暂无内容</h3>
+                <p th:if="${isArticleTab}">快去写第一篇文章吧！</p>
+                <a th:if="${isArticleTab}" href="/article/edit" class="action-btn primary" style="display:inline-block;margin-top:16px;width:auto;">&#x270E; 开始创作</a>
+            </div>
+        </div>
+
+        <!-- 关注/粉丝列表（仅自己可见） -->
+        <div class="user-list" th:if="${isOwner and (isFollowTab or isFansTab)}" th:with="hasFollows=${vo.followList != null ? (vo.followList.list != null ? !vo.followList.list.isEmpty() : false) : false}">
+            <div th:if="${hasFollows}" th:each="follow : ${vo.followList.list}" class="user-list-item">
+                <img class="avatar" th:src="${follow.photo != null and !follow.photo.isEmpty() ? follow.photo : '/img/default-avatar.png'}"
+                     onerror="this.src='/img/default-avatar.png'"
+                     th:onclick="|goUserProfile(${follow.userId})|">
+                <div class="user-info">
+                    <div class="user-name" th:text="${follow.nickName != null and follow.nickName != '' ? follow.nickName : follow.userName}"
+                         th:onclick="|goUserProfile(${follow.userId})|">用户名</div>
+                    <div class="user-desc" th:text="${follow.signature != null and follow.signature != '' ? follow.signature : '这个人很懒，什么都没写'}"></div>
+                </div>
+                <div class="actions" th:if="${isLoggedIn}">
+                    <button class="follow-action-btn"
+                            th:classappend="${follow.followed} ? 'followed' : ''"
+                            th:text="${follow.followed} ? '已关注' : '关注'"
+                            th:attr="data-userid=${follow.userId}, data-followed=${follow.followed}"
+                            onclick="toggleUserFollow(this)"></button>
+                    <button class="msg-action-btn" th:attr="data-targetid=${follow.userId}, data-targetname=${follow.nickName != null and follow.nickName != '' ? follow.nickName : follow.userName}"
+                            onclick="openChatWith(this)">&#x2709; 私信</button>
+                </div>
+            </div>
+            <!-- 关注/粉丝空状态 -->
+            <div th:if="${!hasFollows}" class="empty-tip">
+                <p style="font-size:48px;margin-bottom:12px;">&#x1F464;</p>
+                <h3 style="margin-bottom:6px;color:#666;" th:text="${isFollowTab} ? '还没有关注任何人' : '还没有粉丝'">暂无内容</h3>
+                <p th:if="${isFansTab}">多写点好文章就能吸引粉丝啦~</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑资料弹窗 -->
+    <div class="modal-overlay" id="editModal" th:if="${vo.userHome != null and isOwner}">
+        <div class="modal">
+            <h2>&#x270F; 编辑个人资料</h2>
+            <form id="editProfileForm" onsubmit="return saveProfile(event)">
+                <div class="form-group">
+                    <label>昵称</label>
+                    <input type="text" id="editNickname" name="nickname" th:value="${vo.userHome.userName}" maxlength="20" required>
+                </div>
+                <div class="form-group">
+                    <label>个人简介</label>
+                    <textarea id="editProfile" name="profile" placeholder="介绍一下自己吧..." maxlength="200" th:text="${vo.userHome.profile != null ? vo.userHome.profile : ''}"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-cancel" onclick="closeEditModal()">取消</button>
+                    <button type="submit" class="btn-confirm">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script th:inline="javascript">
+        const currentUserId = [[${global != null ? global.user.userId : 0}]];
+        const profileUserId = [[${vo.userHome != null ? vo.userHome.userId : 0}]];
+        let isFollowed = [[${isFollowed}]] || false;
+
+        function goUserProfile(uid) {
+            if (!uid || uid === currentUserId) return;
+            location.href = '/user/' + uid;
+        }
+
+        function switchTab(tab) {
+            location.href = '/user/' + profileUserId + '?homeSelectType=' + tab;
+        }
+
+        function openEditModal() {
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('show');
+        }
+
+        async function saveProfile(e) {
+            e.preventDefault();
+            const nickname = document.getElementById('editNickname').value.trim();
+            const profile = document.getElementById('editProfile').value.trim();
+            if (!nickname) { alert('昵称不能为空'); return false; }
+            try {
+                const res = await fetch('/api/user/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: currentUserId, nickname: nickname, profile: profile })
+                });
+                const result = await res.json();
+                if (result.status && result.status.code === 0) {
+                    closeEditModal();
+                    location.reload();
+                } else {
+                    alert(result.status.msg || '保存失败');
+                }
+            } catch(err) { alert('网络错误'); }
+            return false;
+        }
+
+        // 个人卡片上的关注按钮
+        async function toggleProfileFollow() {
+            try {
+                const res = await fetch('/user/api/saveUserRelation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ followUserId: profileUserId, relationType: isFollowed ? 2 : 1 })
+                });
+                const result = await res.json();
+                if (result.status && result.status.code === 0) {
+                    isFollowed = !isFollowed;
+                    const btn = document.getElementById('profileFollowBtn');
+                    btn.textContent = isFollowed ? '已关注' : '+ 关注';
+                    btn.className = isFollowed ? 'edit-btn edit-btn-followed' : 'edit-btn';
+                    location.reload();
+                } else { alert((result.status && result.status.msg) || '操作失败'); }
+            } catch(err) { alert('网络错误'); }
+        }
+
+        // 打开私信
+        function openMessage() {
+            location.href = '/message?targetUserId=' + profileUserId;
+        }
+
+        // 关注/粉丝列表中的关注按钮
+        async function toggleUserFollow(btn) {
+            const targetUid = parseInt(btn.getAttribute('data-userid'));
+            const wasFollowed = btn.getAttribute('data-followed') === 'true';
+            try {
+                const res = await fetch('/user/api/saveUserRelation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ followUserId: targetUid, relationType: wasFollowed ? 2 : 1 })
+                });
+                const result = await res.json();
+                if (result.status && result.status.code === 0) {
+                    btn.setAttribute('data-followed', String(!wasFollowed));
+                    btn.textContent = wasFollowed ? '关注' : '已关注';
+                    btn.classList.toggle('followed', !wasFollowed);
+                } else { alert((result.status && result.status.msg) || '操作失败'); }
+            } catch(err) { alert('网络错误'); }
+        }
+
+        // 从关注/粉丝列表打开私信
+        function openChatWith(btn) {
+            const targetId = btn.getAttribute('data-targetid');
+            location.href = '/message?targetUserId=' + targetId;
+        }
+
+        document.getElementById('editModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeEditModal();
+        });
+    </script>
+<script>
+(function() {
+    function fetchUnread() {
+        fetch('/chat/api/unread').then(function(r) { return r.json(); }).then(function(res) {
+            if (res.status && res.status.code === 200 && res.result !== undefined) {
+                var b = document.getElementById('msgBadge');
+                if (b) { b.textContent = res.result; b.style.display = res.result > 0 ? 'flex' : 'none'; }
+            }
+        }).catch(function() {});
+    }
+    fetchUnread();
+    setInterval(fetchUnread, 30000);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.forum.service.article.repository.dao.ColumnInfoDao">
+
+    <select id="findAllPublished" resultType="com.example.forum.service.article.repository.entity.ColumnInfoDO">
+        SELECT id, column_name as columnName, user_id as userId, introduction, cover,
+               state, publish_time as publishTime, create_time as createTime, update_time as updateTime,
+               section, nums, type, free_start_time as freeStartTime, free_end_time as freeEndTime
+        FROM column_info
+        WHERE state IN (1, 2)
+        ORDER BY section ASC, update_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countAllPublished" resultType="int">
+        SELECT COUNT(*) FROM column_info WHERE state IN (1, 2)
+    </select>
+
+    <select id="findById" resultType="com.example.forum.service.article.repository.entity.ColumnInfoDO">
+        SELECT id, column_name as columnName, user_id as userId, introduction, cover,
+               state, publish_time as publishTime, create_time as createTime, update_time as updateTime,
+               section, nums, type, free_start_time as freeStartTime, free_end_time as freeEndTime
+        FROM column_info
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="findByUserId" resultType="com.example.forum.service.article.repository.entity.ColumnInfoDO">
+        SELECT id, column_name as columnName, user_id as userId, introduction, cover,
+               state, publish_time as publishTime, create_time as createTime, update_time as updateTime,
+               section, nums, type, free_start_time as freeStartTime, free_end_time as freeEndTime
+        FROM column_info
+        WHERE user_id = #{userId}
+        ORDER BY create_time DESC
+    </select>
+
+    <insert id="insert" parameterType="com.example.forum.service.article.repository.entity.ColumnInfoDO" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO column_info (column_name, user_id, introduction, cover, state, section, nums, type)
+        VALUES (#{columnName}, #{userId}, #{introduction}, #{cover}, #{state}, #{section}, #{nums}, #{type})
+    </insert>
+
+    <update id="update" parameterType="com.example.forum.service.article.repository.entity.ColumnInfoDO">
+        UPDATE column_info SET column_name = #{columnName}, introduction = #{introduction}, cover = #{cover},
+               state = #{state}, section = #{section}, nums = #{nums}, type = #{type}
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteById">
+        DELETE FROM column_info WHERE id = #{id}
+    </update>
+
+    <select id="searchByKeyword" resultType="com.example.forum.service.article.repository.entity.ColumnInfoDO">
+        SELECT id, column_name as columnName, user_id as userId, introduction, cover,
+               state, publish_time as publishTime, create_time as createTime, update_time as updateTime,
+               section, nums, type, free_start_time as freeStartTime, free_end_time as freeEndTime
+        FROM column_info
+        WHERE state IN (1, 2)
+          AND column_name LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY update_time DESC
+        LIMIT 20
+    </select>
+
+</mapper>

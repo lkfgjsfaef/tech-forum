@@ -1,0 +1,7 @@
+pay:
+  wx:
+    enable: false
+    app-id: 
+    mch-id: 
+    mch-key: 
+    notify-url: 

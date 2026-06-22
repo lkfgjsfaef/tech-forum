@@ -1,0 +1,7 @@
+wx:
+  login:
+    enable: false
+    login-qr-type: none
+    app-id: 
+    app-secret: 
+    redirect-uri: 
